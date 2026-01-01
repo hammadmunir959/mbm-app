@@ -13,6 +13,20 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+// ============================================================
+// FIX: Inject namespace for legacy plugins that don't define it
+// Uses whenObjectAdded hook which fires during configuration phase
+// ============================================================
+subprojects { subproject ->
+    subproject.plugins.withId('com.android.library') {
+        subproject.android {
+            if (namespace == null || namespace.isEmpty()) {
+                namespace = "dev.isar.${subproject.name.replace('-', '_')}"
+            }
+        }
+    }
+}
+
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
