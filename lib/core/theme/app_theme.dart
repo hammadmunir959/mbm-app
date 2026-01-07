@@ -32,7 +32,7 @@ class AppTheme {
           onSurface: darkText,
           error: errorColor,
         ),
-        cardTheme: CardThemeData(
+        cardTheme: CardThemeData( // Updated for Flutter 3.16+ compatibility
           color: darkSurface,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -56,7 +56,7 @@ class AppTheme {
           onSurface: lightText,
           error: errorColor,
         ),
-        cardTheme: CardThemeData(
+        cardTheme: CardThemeData( // Updated for Flutter 3.16+ compatibility
           color: lightSurface,
           elevation: 2,
           shadowColor: Colors.black.withOpacity(0.05),
