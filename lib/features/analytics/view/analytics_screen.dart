@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:animate_do/animate_do.dart';
-import 'package:mbm_app/core/theme/app_theme.dart';
-import 'package:mbm_app/core/widgets/glass_card.dart';
-import 'package:mbm_app/core/models/invoice.dart';
-import 'package:mbm_app/core/repositories/invoice_repository.dart';
-import 'package:mbm_app/core/widgets/revenue_chart.dart';
-import 'package:mbm_app/core/widgets/category_pie_chart.dart';
-import 'package:mbm_app/features/inventory/controller/inventory_controller.dart';
+import 'package:cellaris/core/theme/app_theme.dart';
+import 'package:cellaris/core/widgets/glass_card.dart';
+import 'package:cellaris/core/models/invoice.dart';
+import 'package:cellaris/core/repositories/invoice_repository.dart';
+import 'package:cellaris/core/widgets/revenue_chart.dart';
+import 'package:cellaris/core/widgets/category_pie_chart.dart';
+import 'package:cellaris/features/inventory/controller/inventory_controller.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});

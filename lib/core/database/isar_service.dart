@@ -3,6 +3,7 @@ import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'isar_schemas.dart';
+import 'local_control_state.dart';
 
 class IsarService {
   late Isar isar;
@@ -51,6 +52,8 @@ class IsarService {
         CompanyPersistenceSchema,
         LocationPersistenceSchema,
         SalesmanPersistenceSchema,
+        // Control plane (offline tracking)
+        LocalControlStatePersistenceSchema,
       ],
       directory: dbPath,
     );

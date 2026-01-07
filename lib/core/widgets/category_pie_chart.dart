@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:mbm_app/core/models/app_models.dart';
+import 'package:cellaris/core/models/app_models.dart';
 
 class CategoryPieChart extends StatelessWidget {
   final List<Product> products;

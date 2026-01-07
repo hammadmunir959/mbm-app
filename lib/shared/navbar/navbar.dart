@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:mbm_app/core/theme/app_theme.dart';
-import 'package:mbm_app/main.dart';
+import 'package:cellaris/core/theme/app_theme.dart';
+import 'package:cellaris/main.dart';
 import 'package:intl/intl.dart';
-import 'package:mbm_app/shared/controller/shared_controller.dart';
-import 'package:mbm_app/shared/controller/notification_controller.dart';
-import 'package:mbm_app/core/models/app_models.dart';
+import 'package:cellaris/shared/controller/shared_controller.dart';
+import 'package:cellaris/shared/controller/notification_controller.dart';
+import 'package:cellaris/core/models/app_models.dart';
 
 class Navbar extends ConsumerWidget {
   final VoidCallback onToggleSidebar;

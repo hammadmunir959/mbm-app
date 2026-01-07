@@ -1,7 +1,7 @@
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:mbm_app/core/models/app_models.dart';
+import 'package:cellaris/core/models/app_models.dart';
 import 'package:intl/intl.dart';
 
 class PdfService {
@@ -223,7 +223,7 @@ class PdfService {
         pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text('MBM SOLUTIONS', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+            pw.Text('CELLARIS SOLUTIONS', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
             pw.Text('High-Tech Device Repair Center'),
             pw.Text('123 Business Road, Tech City'),
             pw.Text('Phone: +92 300 1234567'),
@@ -388,7 +388,7 @@ class PdfService {
         ),
         pw.SizedBox(height: 30),
         pw.Center(
-          child: pw.Text('Thank you for choosing MBM SOLUTIONS', style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic, color: PdfColors.grey600)),
+          child: pw.Text('Thank you for choosing CELLARIS SOLUTIONS', style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic, color: PdfColors.grey600)),
         ),
       ],
     );

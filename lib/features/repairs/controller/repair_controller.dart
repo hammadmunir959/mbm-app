@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mbm_app/core/models/app_models.dart';
-import 'package:mbm_app/core/repositories/repair_repository.dart';
-import 'package:mbm_app/shared/controller/shared_controller.dart';
-import 'package:mbm_app/core/models/persistence_mappers.dart';
-import 'package:mbm_app/core/services/pdf_service.dart';
+import 'package:cellaris/core/models/app_models.dart';
+import 'package:cellaris/core/repositories/repair_repository.dart';
+import 'package:cellaris/shared/controller/shared_controller.dart';
+import 'package:cellaris/core/models/persistence_mappers.dart';
+import 'package:cellaris/core/services/pdf_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 

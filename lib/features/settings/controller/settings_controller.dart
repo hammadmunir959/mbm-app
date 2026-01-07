@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mbm_app/core/models/app_models.dart';
+import 'package:cellaris/core/models/app_models.dart';
 
 class SettingsNotifier extends StateNotifier<BusinessSettings> {
   SettingsNotifier() : super(BusinessSettings(
-    companyName: 'MBM Mobile Solutions',
+    companyName: 'Cellaris Solutions',
     address: 'Main Boulevard, Gulberg III, Lahore',
     phone: '+92 42 1234567',
     email: 'info@mbm.com',

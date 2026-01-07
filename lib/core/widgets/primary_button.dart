@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mbm_app/core/theme/app_theme.dart';
+import 'package:cellaris/core/theme/app_theme.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String label;

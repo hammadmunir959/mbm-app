@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mbm_app/core/models/app_models.dart';
-import 'package:mbm_app/features/inventory/controller/inventory_controller.dart';
-import 'package:mbm_app/core/repositories/purchase_order_repository.dart';
-import 'package:mbm_app/core/models/persistence_mappers.dart';
-import 'package:mbm_app/core/repositories/unit_repository.dart';
-import 'package:mbm_app/core/models/unit_imei.dart';
+import 'package:cellaris/core/models/app_models.dart';
+import 'package:cellaris/features/inventory/controller/inventory_controller.dart';
+import 'package:cellaris/core/repositories/purchase_order_repository.dart';
+import 'package:cellaris/core/models/persistence_mappers.dart';
+import 'package:cellaris/core/repositories/unit_repository.dart';
+import 'package:cellaris/core/models/unit_imei.dart';
 
 
 class PurchasesNotifier extends StateNotifier<List<PurchaseOrder>> {

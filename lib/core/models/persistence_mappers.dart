@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:mbm_app/core/models/app_models.dart';
-import 'package:mbm_app/core/database/isar_schemas.dart';
+import 'package:cellaris/core/models/app_models.dart';
+import 'package:cellaris/core/database/isar_schemas.dart';
 
 extension ProductMapper on Product {
   ProductPersistence toPersistence({bool synced = false}) {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:mbm_app/core/theme/app_theme.dart';
+import 'package:cellaris/core/theme/app_theme.dart';
 
 class Sidebar extends StatelessWidget {
   final bool isCollapsed;
@@ -44,7 +44,7 @@ class Sidebar extends StatelessWidget {
                 if (!isCollapsed) ...[
                   const SizedBox(width: 12),
                   Text(
-                    'MBM',
+                    'Cellaris',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.2,
@@ -130,6 +130,14 @@ class Sidebar extends StatelessWidget {
                   label: 'Accounts',
                   route: '/accounts',
                   isSelected: location == '/accounts',
+                  isCollapsed: isCollapsed,
+                ),
+                const Divider(height: 32, indent: 8, endIndent: 8),
+                _SidebarItem(
+                  icon: LucideIcons.userCircle,
+                  label: 'Profile',
+                  route: '/profile',
+                  isSelected: location == '/profile',
                   isCollapsed: isCollapsed,
                 ),
                 _SidebarItem(

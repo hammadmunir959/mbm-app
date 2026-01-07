@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:animate_do/animate_do.dart';
-import 'package:mbm_app/core/theme/app_theme.dart';
-import 'package:mbm_app/core/widgets/glass_card.dart';
-import 'package:mbm_app/core/widgets/primary_button.dart';
-import 'package:mbm_app/features/transactions/controller/transaction_controller.dart';
+import 'package:cellaris/core/theme/app_theme.dart';
+import 'package:cellaris/core/widgets/glass_card.dart';
+import 'package:cellaris/core/widgets/primary_button.dart';
+import 'package:cellaris/features/transactions/controller/transaction_controller.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -886,7 +886,7 @@ class _TransactionDetailDialog extends StatelessWidget {
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text('MBM Store', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                pw.Text('Cellaris Store', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
                 pw.Text(transaction.typeLabel, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
               ],
             ),

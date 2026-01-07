@@ -76,7 +76,11 @@ class StockLedgerRepository {
   /// Get total available quantity for a product
   Future<double> getAvailableQuantity(String productId) async {
     final entries = await getAvailableStock(productId);
-    return entries.fold(0.0, (sum, entry) => sum + entry.quantity);
+    double total = 0.0;
+    for (final entry in entries) {
+      total += entry.quantity;
+    }
+    return total;
   }
 
   /// Get stock by status
@@ -130,8 +134,11 @@ class StockLedgerRepository {
           .statusEqualTo(StockStatus.available.name)
           .findAll();
     }
-    return persistence.fold(
-        0.0, (sum, entry) => sum + (entry.quantity * entry.purchasePrice));
+    double total = 0.0;
+    for (final entry in persistence) {
+      total += entry.quantity * entry.purchasePrice;
+    }
+    return total;
   }
 
   // ============================================================

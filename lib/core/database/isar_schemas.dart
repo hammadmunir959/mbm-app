@@ -1,5 +1,7 @@
 import 'package:isar/isar.dart';
 
+export 'local_control_state.dart';
+
 part 'isar_schemas.g.dart';
 
 @collection

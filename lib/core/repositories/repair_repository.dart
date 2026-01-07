@@ -1,7 +1,7 @@
 import 'package:isar/isar.dart';
-import 'package:mbm_app/core/database/isar_schemas.dart';
+import 'package:cellaris/core/database/isar_schemas.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mbm_app/core/database/isar_service.dart';
+import 'package:cellaris/core/database/isar_service.dart';
 
 class RepairRepository {
   final Isar _isar;

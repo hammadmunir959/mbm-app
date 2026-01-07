@@ -234,7 +234,7 @@ class DashboardKPINotifier extends StateNotifier<AsyncValue<DashboardKPIs>> {
         // Receivables (Asset) -> Customers
         // We'll rely on the fact that customers typically have distinct accounts if managed properly,
         // or check if account is linked to a customer.
-        // For MBM default: accountNo often starts with specific digits. 
+        // For Cellaris default: accountNo often starts with specific digits. 
         // Let's use Balance > 0 on Asset accounts that are NOT cash/bank as a rough proxy if we don't have group IDs handy.
         // A better way is to iterate over Customer/Supplier Repositories directly if they have balances.
       }

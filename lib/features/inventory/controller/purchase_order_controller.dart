@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mbm_app/core/models/app_models.dart';
-import 'package:mbm_app/core/repositories/purchase_order_repository.dart';
-import 'package:mbm_app/core/repositories/product_repository.dart';
+import 'package:cellaris/core/models/app_models.dart';
+import 'package:cellaris/core/repositories/purchase_order_repository.dart';
+import 'package:cellaris/core/repositories/product_repository.dart';
 import 'package:uuid/uuid.dart';
-import 'package:mbm_app/core/models/persistence_mappers.dart';
+import 'package:cellaris/core/models/persistence_mappers.dart';
 class PurchaseOrderNotifier extends StateNotifier<List<PurchaseOrder>> {
   final PurchaseOrderRepository _repository;
 

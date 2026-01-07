@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:mbm_app/core/models/app_models.dart';
-import 'package:mbm_app/core/models/unit_imei.dart';
-import 'package:mbm_app/core/repositories/unit_repository.dart';
-import 'package:mbm_app/core/widgets/glass_card.dart';
-import 'package:mbm_app/core/widgets/primary_button.dart';
-import 'package:mbm_app/core/theme/app_theme.dart';
+import 'package:cellaris/core/models/app_models.dart';
+import 'package:cellaris/core/models/unit_imei.dart';
+import 'package:cellaris/core/repositories/unit_repository.dart';
+import 'package:cellaris/core/widgets/glass_card.dart';
+import 'package:cellaris/core/widgets/primary_button.dart';
+import 'package:cellaris/core/theme/app_theme.dart';
 
 class ImeiSelectionDialog extends ConsumerStatefulWidget {
   final Product product;

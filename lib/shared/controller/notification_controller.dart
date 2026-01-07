@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mbm_app/core/models/app_models.dart';
+import 'package:cellaris/core/models/app_models.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 class NotificationNotifier extends StateNotifier<List<AppNotification>> {

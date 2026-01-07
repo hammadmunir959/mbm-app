@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:animate_do/animate_do.dart';
-import 'package:mbm_app/core/theme/app_theme.dart';
-import 'package:mbm_app/core/widgets/glass_card.dart';
-import 'package:mbm_app/core/widgets/primary_button.dart';
-import 'package:mbm_app/shared/controller/shared_controller.dart';
-import 'package:mbm_app/core/models/app_models.dart';
-import 'package:mbm_app/features/suppliers/view/add_supplier_modal.dart';
-import 'package:mbm_app/features/suppliers/view/supplier_history_dialog.dart';
+import 'package:cellaris/core/theme/app_theme.dart';
+import 'package:cellaris/core/widgets/glass_card.dart';
+import 'package:cellaris/core/widgets/primary_button.dart';
+import 'package:cellaris/shared/controller/shared_controller.dart';
+import 'package:cellaris/core/models/app_models.dart';
+import 'package:cellaris/features/suppliers/view/add_supplier_modal.dart';
+import 'package:cellaris/features/suppliers/view/supplier_history_dialog.dart';
 
 class SuppliersScreen extends ConsumerWidget {
   const SuppliersScreen({super.key});

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mbm_app/core/theme/app_theme.dart';
-import 'package:mbm_app/shared/sidebar/sidebar.dart';
-import 'package:mbm_app/shared/navbar/navbar.dart';
+import 'package:cellaris/core/theme/app_theme.dart';
+import 'package:cellaris/shared/sidebar/sidebar.dart';
+import 'package:cellaris/shared/navbar/navbar.dart';
 
 class AppLayout extends ConsumerStatefulWidget {
   final Widget child;

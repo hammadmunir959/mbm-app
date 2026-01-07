@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mbm_app/core/repositories/product_repository.dart';
+import 'package:cellaris/core/repositories/product_repository.dart';
 
 class SyncService {
   final Ref _ref;

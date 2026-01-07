@@ -1,6 +1,12 @@
 # This is a generated file; do not edit or check into version control.
+cloud_firestore=/home/my-pc/.pub-cache/hosted/pub.dev/cloud_firestore-5.6.12/
+cloud_firestore_web=/home/my-pc/.pub-cache/hosted/pub.dev/cloud_firestore_web-4.4.12/
 connectivity_plus=/home/my-pc/.pub-cache/hosted/pub.dev/connectivity_plus-5.0.2/
 file_picker=/home/my-pc/.pub-cache/hosted/pub.dev/file_picker-8.3.7/
+firebase_auth=/home/my-pc/.pub-cache/hosted/pub.dev/firebase_auth-5.7.0/
+firebase_auth_web=/home/my-pc/.pub-cache/hosted/pub.dev/firebase_auth_web-5.15.3/
+firebase_core=/home/my-pc/.pub-cache/hosted/pub.dev/firebase_core-3.15.2/
+firebase_core_web=/home/my-pc/.pub-cache/hosted/pub.dev/firebase_core_web-2.24.1/
 flutter_plugin_android_lifecycle=/home/my-pc/.pub-cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.29/
 flutter_secure_storage=/home/my-pc/.pub-cache/hosted/pub.dev/flutter_secure_storage-9.2.4/
 flutter_secure_storage_linux=/home/my-pc/.pub-cache/hosted/pub.dev/flutter_secure_storage_linux-1.2.3/
