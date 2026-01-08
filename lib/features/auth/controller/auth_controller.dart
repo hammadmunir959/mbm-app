@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../../core/models/user_model.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/subscription_service.dart';
@@ -321,7 +321,6 @@ class AuthController extends StateNotifier<AuthState> {
       if (user != null) {
         // Sync subscription from Firebase
         await _subscriptionService.syncFromFirebase(uid);
-        final isValid = await _subscriptionService.isSubscriptionValid();
         
         // Check if user can still access the app
         final canAccess = (user.status == UserStatus.active || user.status == UserStatus.trial) &&

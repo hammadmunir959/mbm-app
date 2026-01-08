@@ -3,7 +3,6 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
-import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
 
@@ -220,11 +219,8 @@ class SubscriptionService {
         // Extract status
         final statusStr = data['status'] as String? ?? 'active';
         final status = UserStatus.values.firstWhere(
-          (e) => e.firestoreValue == statusStr,
-          orElse: () => UserStatus.values.firstWhere(
-            (e) => e.name == statusStr,
-            orElse: () => UserStatus.expired
-          ),
+          (e) => e.name == statusStr,
+          orElse: () => UserStatus.expired,
         );
 
         await saveLocalData(expiry: expiry, status: status);
