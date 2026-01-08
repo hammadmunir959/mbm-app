@@ -1,12 +1,12 @@
 # ============================================================
-# MBM Desktop-Only Build and Release Workflow
+# Cellaris Desktop-Only Build and Release Workflow
 # ============================================================
-# This workflow builds MBM for Linux and Windows desktop platforms.
+# This workflow builds Cellaris for Linux and Windows desktop platforms.
 # Triggered on version tags (v*) to create GitHub releases.
 # Android/iOS/macOS platforms are NOT supported.
 # ============================================================
 
-name: Build and Release MBM
+name: Build and Release Cellaris
 
 on:
   push:
@@ -61,7 +61,7 @@ jobs:
       - name: Create Windows Archive
         run: |
           cd build/windows/x64/runner/Release
-          Compress-Archive -Path * -DestinationPath ../../../../../MBM-Windows.zip
+          Compress-Archive -Path * -DestinationPath ../../../../../Cellaris-Windows.zip
         shell: pwsh
 
       # Step 7: Upload the Windows artifact for use in release job
@@ -69,7 +69,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-release
-          path: MBM-Windows.zip
+          path: Cellaris-Windows.zip
           retention-days: 5
 
   # ============================================================
@@ -129,14 +129,14 @@ jobs:
       - name: Create Linux Archive
         run: |
           cd build/linux/x64/release/bundle
-          tar -czvf ../../../../../MBM-Linux.tar.gz *
+          tar -czvf ../../../../../Cellaris-Linux.tar.gz *
 
       # Step 8: Upload the Linux artifact for use in release job
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-release
-          path: MBM-Linux.tar.gz
+          path: Cellaris-Linux.tar.gz
           retention-days: 5
 
   # ============================================================
@@ -172,35 +172,35 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: MBM ${{ github.ref_name }}
+          name: Cellaris ${{ github.ref_name }}
           body: |
-            ## MBM ${{ github.ref_name }} - Desktop Release
+            ## Cellaris ${{ github.ref_name }} - Desktop Release
             
             ### 🖥️ Downloads
             
             | Platform | File | Instructions |
             |----------|------|--------------|
-            | **Windows** | `MBM-Windows.zip` | Extract and run `mbm_app.exe` |
-            | **Linux** | `MBM-Linux.tar.gz` | Extract and run `./mbm_app` |
+            | **Windows** | `Cellaris-Windows.zip` | Extract and run `cellaris.exe` |
+            | **Linux** | `Cellaris-Linux.tar.gz` | Extract and run `./cellaris` |
             
             ### 📦 Installation
             
             **Windows:**
-            1. Download `MBM-Windows.zip`
+            1. Download `Cellaris-Windows.zip`
             2. Extract to your preferred location
-            3. Run `mbm_app.exe`
+            3. Run `cellaris.exe`
             
             **Linux:**
-            1. Download `MBM-Linux.tar.gz`
-            2. Extract: `tar -xzvf MBM-Linux.tar.gz`
-            3. Make executable: `chmod +x mbm_app`
-            4. Run: `./mbm_app`
+            1. Download `Cellaris-Linux.tar.gz`
+            2. Extract: `tar -xzvf Cellaris-Linux.tar.gz`
+            3. Make executable: `chmod +x cellaris`
+            4. Run: `./cellaris`
             
             ---
             *This is a desktop-only release. Android/iOS/macOS are not supported.*
           files: |
-            artifacts/MBM-Windows.zip
-            artifacts/MBM-Linux.tar.gz
+            artifacts/Cellaris-Windows.zip
+            artifacts/Cellaris-Linux.tar.gz
           draft: false
           prerelease: false
           generate_release_notes: true
