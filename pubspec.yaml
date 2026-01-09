@@ -1,6 +1,6 @@
 name: cellaris
 description: Cellaris. A premium desktop-first business management system.
-version: 0.0.2+2
+version: 0.0.4+1
 publish_to: 'none'
 
 environment:
