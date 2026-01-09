@@ -18,7 +18,7 @@
 
 **Cellaris** is a feature-rich, offline-first business management application built with Flutter. Designed for mobile phone shops, electronics retailers, and general businesses, it provides a complete suite of tools including Point of Sale (POS), Inventory Management, Repairs Tracking, Customer Management, and Financial Accounting.
 
-> 🚀 **v0.0.3** - Latest release with enhanced Inventory Hub, Buyback Auto-Listing, and improved UI/UX.
+> 🚀 **v0.0.5** - Latest release with enhanced Inventory Hub, Buyback Auto-Listing, and improved UI/UX.
 
 ---
 
@@ -181,7 +181,7 @@ This approach enables full Firebase functionality on Linux and Windows without n
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| v0.0.3 | Jan 2026 | Enhanced Inventory Hub, Buyback auto-listing, Repairs Kanban |
+| v0.0.5 | Jan 2026 | Enhanced Inventory Hub, Buyback auto-listing, Repairs Kanban |
 | v0.0.2 | Dec 2025 | Dashboard redesign, Transaction history |
 | v0.0.1 | Dec 2025 | Initial release |
 
