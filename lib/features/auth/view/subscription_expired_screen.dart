@@ -475,6 +475,7 @@ class _SubscriptionExpiredScreenState extends ConsumerState<SubscriptionExpiredS
                   delay: const Duration(milliseconds: 100),
                   child: _buildMainView(user, isDark),
                 ),
+              _buildSupportInfo(),
             ],
           ),
         ),
@@ -879,6 +880,7 @@ class _SubscriptionExpiredScreenState extends ConsumerState<SubscriptionExpiredS
                       label: const Text('Logout'),
                       style: TextButton.styleFrom(foregroundColor: Colors.grey),
                     ),
+                    _buildSupportInfo(),
                   ],
                 ),
               ),
@@ -972,6 +974,7 @@ class _SubscriptionExpiredScreenState extends ConsumerState<SubscriptionExpiredS
                     ? _buildPackageSelection(isDark)
                     : _buildPaymentForm(isDark),
               ),
+              _buildSupportInfo(),
             ],
           ),
         ),
@@ -1487,6 +1490,26 @@ class _SubscriptionExpiredScreenState extends ConsumerState<SubscriptionExpiredS
             onPressed: _isSubmitting ? null : _submitPayment,
             isLoading: _isSubmitting,
             width: double.infinity,
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildSupportInfo() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 32),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(LucideIcons.mail, size: 14, color: Colors.grey),
+          const SizedBox(width: 8),
+          Text(
+            'Need help? Contact support at ',
+            style: TextStyle(color: Colors.grey[500]),
+          ),
+          SelectableText(
+            'codekonix@gmail.com',
+            style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
           ),
         ],
       ),

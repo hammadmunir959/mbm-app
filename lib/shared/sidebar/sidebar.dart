@@ -112,13 +112,6 @@ class Sidebar extends StatelessWidget {
                 ),
                 const Divider(height: 32, indent: 8, endIndent: 8),
                 _SidebarItem(
-                  icon: LucideIcons.barChart2,
-                  label: 'Analytics',
-                  route: '/analytics',
-                  isSelected: location == '/analytics',
-                  isCollapsed: isCollapsed,
-                ),
-                _SidebarItem(
                   icon: LucideIcons.history,
                   label: 'Transactions',
                   route: '/transactions',

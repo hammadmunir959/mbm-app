@@ -7,15 +7,13 @@ import 'package:intl/intl.dart';
 
 import 'package:cellaris/core/theme/app_theme.dart';
 import 'package:cellaris/core/widgets/glass_card.dart';
-import 'package:cellaris/core/widgets/primary_button.dart';
 import 'package:cellaris/core/models/app_models.dart';
-import 'package:cellaris/shared/controller/shared_controller.dart';
+import 'package:cellaris/core/models/invoice.dart';
 import 'package:cellaris/features/inventory/controller/inventory_controller.dart';
-
-import '../controller/unified_sales_controller.dart';
+import 'package:cellaris/features/sales/controller/unified_sales_controller.dart';
+import 'package:cellaris/core/repositories/invoice_repository.dart';
 import '../../pos/view/imei_selection_dialog.dart';
 
-/// Unified Sales Screen with Tabs
 class SalesScreen extends ConsumerStatefulWidget {
   const SalesScreen({super.key});
 
@@ -25,13 +23,13 @@ class SalesScreen extends ConsumerStatefulWidget {
 
 class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -43,55 +41,78 @@ class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProv
     final theme = Theme.of(context);
     
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header Row (matches inventory hub style)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Sales', style: theme.textTheme.displayMedium?.copyWith(fontSize: 28)),
-                const SizedBox(height: 4),
-                const Text('Point of Sale & Order Management', style: TextStyle(color: Colors.grey)),
-              ],
-            ),
-            // Tab Bar
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                indicatorColor: AppTheme.primaryColor,
-                labelColor: AppTheme.primaryColor,
-                unselectedLabelColor: Colors.grey,
-                indicatorSize: TabBarIndicatorSize.label,
-                dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(child: Row(children: [Icon(LucideIcons.shoppingCart, size: 16), SizedBox(width: 8), Text('POS')])),
-                  Tab(child: Row(children: [Icon(LucideIcons.history, size: 16), SizedBox(width: 8), Text('Sales History')])),
-                  Tab(child: Row(children: [Icon(LucideIcons.globe, size: 16), SizedBox(width: 8), Text('Online Orders')])),
-                  Tab(child: Row(children: [Icon(LucideIcons.pauseCircle, size: 16), SizedBox(width: 8), Text('On Hold')])),
+        // Top Header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Sales Terminal', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(LucideIcons.store, size: 14, color: Colors.grey[400]),
+                      const SizedBox(width: 6),
+                      Text('Manage POS, Orders & History', style: TextStyle(color: Colors.grey[400], fontSize: 13)),
+                    ],
+                  ),
                 ],
               ),
-            ),
-          ],
+              // Modern Tab Bar
+              Container(
+                height: 45,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.08)),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  indicator: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryColor.withOpacity(0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.grey,
+                  labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  padding: const EdgeInsets.all(4),
+                  indicatorPadding: EdgeInsets.zero,
+                  dividerColor: Colors.transparent,
+                  tabs: const [
+                    Tab(child: Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Row(children: [Icon(LucideIcons.shoppingCart, size: 16), SizedBox(width: 8), Text('POS')]))),
+                    Tab(child: Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Row(children: [Icon(LucideIcons.history, size: 16), SizedBox(width: 8), Text('History')]))),
+                    Tab(child: Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Row(children: [Icon(LucideIcons.packageCheck, size: 16), SizedBox(width: 8), Text('Orders')]))),
+                    Tab(child: Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Row(children: [Icon(LucideIcons.pauseCircle, size: 16), SizedBox(width: 8), Text('On Hold')]))),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 24),
-        // Tab Content
+        const SizedBox(height: 20),
+        
+        // Content Area
         Expanded(
           child: TabBarView(
             controller: _tabController,
+            physics: const NeverScrollableScrollPhysics(), // Disable swipe for desktop feel
             children: [
-              _POSTab(),
-              _SalesHistoryTab(),
-              _OnlineOrdersTab(),
-              _OnHoldTab(),
+              const _POSTab(),
+              const _SalesHistoryTab(),
+              const _OrdersTab(),
+              const _OnHoldTab(),
             ],
           ),
         ),
@@ -100,149 +121,118 @@ class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProv
   }
 }
 
-// ============================================================
-// TAB 1: POS
-// ============================================================
+// -----------------------------------------------------------------------------
+// POS TAB
+// -----------------------------------------------------------------------------
 
 class _POSTab extends ConsumerWidget {
+  const _POSTab();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(unifiedSalesProvider);
+    // Watchers
     final products = ref.watch(salesFilteredProductsProvider);
     final allProducts = ref.watch(productProvider);
-    final List<String> categories = ['All', ...allProducts.map((e) => e.category).toSet()];
+    final categories = ['All', ...allProducts.map((e) => e.category).toSet()];
     final currentCategory = ref.watch(salesCategoryFilterProvider);
-
-    return RawKeyboardListener(
-      focusNode: FocusNode(),
-      autofocus: true,
-      onKey: (event) {
-        if (event is RawKeyDownEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.f1) ref.read(unifiedSalesProvider.notifier).setMode(SalesMode.directSale);
-          else if (event.logicalKey == LogicalKeyboardKey.f2) ref.read(unifiedSalesProvider.notifier).setMode(SalesMode.createOrder);
-          else if (event.logicalKey == LogicalKeyboardKey.f3) ref.read(unifiedSalesProvider.notifier).holdCurrentOrder();
-        }
-      },
+    
+    return FadeInUp(
+      duration: const Duration(milliseconds: 300),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Left: Products
+          // Left Side: Product Grid
           Expanded(
             flex: 3,
             child: Column(
               children: [
-                // Search & Category Filter
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        onChanged: (val) => ref.read(salesSearchQueryProvider.notifier).state = val,
-                        decoration: InputDecoration(
-                          hintText: 'Search products...',
-                          prefixIcon: const Icon(LucideIcons.search, size: 18),
-                          filled: true,
-                          fillColor: Colors.white.withOpacity(0.05),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                // Filter Bar
+                GlassCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      // Search Field
+                      Expanded(
+                        child: TextField(
+                          onChanged: (val) => ref.read(salesSearchQueryProvider.notifier).state = val,
+                          style: const TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'Search products by name, SKU or IMEI...',
+                            hintStyle: TextStyle(color: Colors.grey[500]),
+                            prefixIcon: Icon(LucideIcons.search, size: 18, color: Colors.grey[400]),
+                            filled: true,
+                            fillColor: Colors.black.withOpacity(0.2),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                            isDense: true,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(10)),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: currentCategory,
-                          items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 13)))).toList(),
-                          onChanged: (v) => ref.read(salesCategoryFilterProvider.notifier).state = v ?? 'All',
-                          dropdownColor: AppTheme.darkBg,
+                      const SizedBox(width: 16),
+                      // Category Dropdown
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.2), 
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white.withOpacity(0.05)),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: currentCategory,
+                            items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 13)))).toList(),
+                            onChanged: (v) => ref.read(salesCategoryFilterProvider.notifier).state = v ?? 'All',
+                            dropdownColor: const Color(0xFF1E1E1E),
+                            icon: const Icon(LucideIcons.chevronDown, size: 16, color: Colors.white70),
+                            style: const TextStyle(color: Colors.white),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
-                // Product Grid
+                
+                // Products Grid
                 Expanded(
                   child: products.isEmpty
-                      ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(LucideIcons.searchX, size: 48, color: Colors.grey.withOpacity(0.3)),
-                          const SizedBox(height: 12),
-                          Text('No products found', style: TextStyle(color: Colors.grey[600])),
-                        ]))
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(LucideIcons.packageOpen, size: 64, color: Colors.white.withOpacity(0.1)),
+                              const SizedBox(height: 16),
+                              Text('No products found', style: TextStyle(color: Colors.grey[500], fontSize: 16)),
+                            ],
+                          ),
+                        )
                       : GridView.builder(
+                          padding: const EdgeInsets.only(bottom: 20),
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 4,
-                            childAspectRatio: 0.85,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
+                            childAspectRatio: 0.8,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
                           ),
                           itemCount: products.length,
                           itemBuilder: (context, index) {
                             final product = products[index];
-                            return _ProductCard(product: product, onTap: () => _addToCart(context, product, ref));
+                            return _ProductCard(
+                              product: product,
+                              onTap: () => _addToCart(context, product, ref),
+                            );
                           },
                         ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 20),
-          // Right: Cart
+          const SizedBox(width: 24),
+          
+          // Right Side: Cart
           SizedBox(
-            width: 360,
-            child: GlassCard(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  // Cart Header
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(children: [
-                          const Icon(LucideIcons.shoppingCart, size: 18),
-                          const SizedBox(width: 8),
-                          Text('Cart (${state.items.length})', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        ]),
-                        // Mode Toggle
-                        Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
-                          child: Row(
-                            children: [
-                              _ModeChip(label: 'Sale', isActive: state.isDirectSale, onTap: () => ref.read(unifiedSalesProvider.notifier).setMode(SalesMode.directSale)),
-                              _ModeChip(label: 'Order', isActive: state.isCreateOrder, onTap: () => ref.read(unifiedSalesProvider.notifier).setMode(SalesMode.createOrder)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  // Customer Row
-                  _CustomerRow(state: state, ref: ref),
-                  const Divider(height: 1),
-                  // Cart Items
-                  Expanded(
-                    child: state.items.isEmpty
-                        ? Center(child: Text('Add products to cart', style: TextStyle(color: Colors.grey[600], fontSize: 13)))
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(12),
-                            itemCount: state.items.length,
-                            itemBuilder: (context, index) {
-                              final item = state.items[index];
-                              return _CartItem(item: item, ref: ref);
-                            },
-                          ),
-                  ),
-                  // Footer
-                  _CartFooter(state: state, ref: ref),
-                ],
-              ),
-            ),
+            width: 400,
+            child: _CartPanel(),
           ),
         ],
       ),
@@ -251,7 +241,14 @@ class _POSTab extends ConsumerWidget {
 
   void _addToCart(BuildContext context, Product product, WidgetRef ref) async {
     if (product.stock <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${product.name} is out of stock'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(children: [const Icon(LucideIcons.alertCircle, color: Colors.white, size: 16), const SizedBox(width: 8), Text('${product.name} is out of stock')]),
+          backgroundColor: Colors.red[700],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        )
+      );
       return;
     }
     if (product.requiresImei) {
@@ -263,12 +260,285 @@ class _POSTab extends ConsumerWidget {
   }
 }
 
-// Mode Chip (Sale/Order toggle)
-class _ModeChip extends StatelessWidget {
+// -----------------------------------------------------------------------------
+// CART PANEL
+// -----------------------------------------------------------------------------
+
+class _CartPanel extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(unifiedSalesProvider);
+    
+    return GlassCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          // Cart Header
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: AppTheme.primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                        child: Icon(LucideIcons.shoppingCart, size: 18, color: AppTheme.primaryColor),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Current Sale', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text('${state.totalItems} Items', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                        ],
+                      ),
+                    ]),
+                    // Mode Toggle
+                    Container(
+                      height: 32,
+                      decoration: BoxDecoration(color: Colors.black.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                      child: Row(
+                        children: [
+                          _ModeButton(label: 'Direct', icon: LucideIcons.zap, isActive: state.isDirectSale, onTap: () => ref.read(unifiedSalesProvider.notifier).setMode(SalesMode.directSale)),
+                          _ModeButton(label: 'Order', icon: LucideIcons.fileText, isActive: state.isCreateOrder, onTap: () => ref.read(unifiedSalesProvider.notifier).setMode(SalesMode.createOrder)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Customer Input
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(LucideIcons.user, size: 14, color: AppTheme.primaryColor),
+                          const SizedBox(width: 8),
+                          const Text('Customer Details', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              decoration: BoxDecoration(color: Colors.black.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                              child: TextField(
+                                onChanged: (v) => ref.read(unifiedSalesProvider.notifier).setWalkInName(v),
+                                style: const TextStyle(fontSize: 13),
+                                decoration: InputDecoration(
+                                  hintText: 'Name',
+                                  hintStyle: TextStyle(color: Colors.grey[600]),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              decoration: BoxDecoration(color: Colors.black.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                              child: TextField(
+                                onChanged: (v) => ref.read(unifiedSalesProvider.notifier).setWalkInPhone(v),
+                                keyboardType: TextInputType.phone,
+                                style: const TextStyle(fontSize: 13),
+                                decoration: InputDecoration(
+                                  hintText: 'Phone',
+                                  hintStyle: TextStyle(color: Colors.grey[600]),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const Divider(height: 1, color: Colors.white10),
+          
+          // Cart Items List
+          Expanded(
+            child: state.items.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(LucideIcons.shoppingBag, size: 48, color: Colors.white.withOpacity(0.05)),
+                        const SizedBox(height: 12),
+                        Text('Cart is empty', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                        const SizedBox(height: 4),
+                        Text('Select products to begin', style: TextStyle(color: Colors.grey[700], fontSize: 11)),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: state.items.length,
+                    itemBuilder: (context, index) {
+                      final item = state.items[index];
+                      return _CartItemRow(item: item);
+                    },
+                  ),
+          ),
+          
+          // Footer / Totals
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.2),
+              border: const Border(top: BorderSide(color: Colors.white10)),
+            ),
+            child: Column(
+              children: [
+                _SummaryRow(label: 'Subtotal', value: 'Rs. ${NumberFormat('#,###').format(state.subtotal)}'),
+                const SizedBox(height: 8),
+                _SummaryRow(label: 'Discount', value: '- Rs. ${NumberFormat('#,###').format(state.discountAmount)}', isDiscount: true),
+                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: Colors.white10)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Total Payable', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    Text(
+                      'Rs. ${NumberFormat('#,###').format(state.total)}',
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: AppTheme.primaryColor),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: state.items.isEmpty ? null : () => ref.read(unifiedSalesProvider.notifier).holdCurrentOrder(),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Hold', style: TextStyle(color: Colors.white70)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: Container(
+                        decoration: state.items.isNotEmpty ? BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryColor.withOpacity(0.4),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                          borderRadius: BorderRadius.circular(12),
+                        ) : null,
+                        child: ElevatedButton(
+                          onPressed: (state.items.isEmpty || state.isProcessing) ? null : () => _processSale(context, ref, state),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0, // Handled by Container
+                          ).copyWith(
+                            backgroundColor: MaterialStateProperty.resolveWith((states) {
+                              if (states.contains(MaterialState.disabled)) return Colors.grey.withOpacity(0.2);
+                              return AppTheme.primaryColor;
+                            }),
+                          ),
+                          child: state.isProcessing 
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(state.isDirectSale ? 'Checkout' : 'Save Order', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                    const SizedBox(width: 8),
+                                    const Icon(LucideIcons.arrowRight, size: 18),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _processSale(BuildContext context, WidgetRef ref, UnifiedSalesState state) async {
+    final result = state.isDirectSale 
+      ? await ref.read(unifiedSalesProvider.notifier).processDirectSale()
+      : await ref.read(unifiedSalesProvider.notifier).saveOrder();
+      
+    if (result != null && context.mounted) {
+      showDialog(
+        context: context,
+        builder: (c) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: GlassCard(
+            padding: const EdgeInsets.all(30),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), shape: BoxShape.circle),
+                  child: const Icon(LucideIcons.check, color: Colors.green, size: 32),
+                ),
+                const SizedBox(height: 20),
+                Text(state.isDirectSale ? 'Sale Completed!' : 'Order Saved!', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text('Reference: $result', style: TextStyle(color: Colors.grey[500])),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(c),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
+                    child: const Text('Continue'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+  }
+}
+
+class _ModeButton extends StatelessWidget {
   final String label;
+  final IconData icon;
   final bool isActive;
   final VoidCallback onTap;
-  const _ModeChip({required this.label, required this.isActive, required this.onTap});
+  const _ModeButton({required this.label, required this.icon, required this.isActive, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -280,58 +550,11 @@ class _ModeChip extends StatelessWidget {
           color: isActive ? AppTheme.primaryColor : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
         ),
-        child: Text(label, style: TextStyle(fontSize: 11, fontWeight: isActive ? FontWeight.bold : FontWeight.normal, color: isActive ? Colors.white : Colors.grey)),
-      ),
-    );
-  }
-}
-
-// Product Card (Compact)
-class _ProductCard extends StatelessWidget {
-  final Product product;
-  final VoidCallback onTap;
-  const _ProductCard({required this.product, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isOut = product.stock <= 0;
-    return InkWell(
-      onTap: isOut ? null : onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.03),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(color: AppTheme.primaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
-                child: Stack(
-                  children: [
-                    Center(child: Icon(product.isSerialized ? LucideIcons.smartphone : LucideIcons.package, size: 32, color: isOut ? Colors.grey : AppTheme.primaryColor)),
-                    if (isOut) Positioned(top: 6, right: 6, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(4)), child: const Text('Out', style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)))),
-                    if (product.isSerialized && !isOut) Positioned(top: 6, left: 6, child: Container(padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2), decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(4)), child: const Text('IMEI', style: TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold)))),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
-            Text(product.sku, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(child: Text('Rs. ${NumberFormat('#,###').format(product.sellingPrice)}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isOut ? Colors.grey : AppTheme.primaryColor), overflow: TextOverflow.ellipsis)),
-                if (!isOut) Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: AppTheme.primaryColor, shape: BoxShape.circle), child: const Icon(LucideIcons.plus, size: 12, color: Colors.white)),
-              ],
-            ),
+            Icon(icon, size: 12, color: isActive ? Colors.white : Colors.grey),
+            const SizedBox(width: 6),
+            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isActive ? Colors.white : Colors.grey)),
           ],
         ),
       ),
@@ -339,340 +562,555 @@ class _ProductCard extends StatelessWidget {
   }
 }
 
-// Customer Row (Compact)
-class _CustomerRow extends StatelessWidget {
-  final UnifiedSalesState state;
-  final WidgetRef ref;
-  const _CustomerRow({required this.state, required this.ref});
+class _SummaryRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool isDiscount;
+  const _SummaryRow({required this.label, required this.value, this.isDiscount = false});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              style: const TextStyle(fontSize: 12),
-              decoration: InputDecoration(hintText: 'Customer name', isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), fillColor: Colors.white.withOpacity(0.05), filled: true),
-              onChanged: (v) => ref.read(unifiedSalesProvider.notifier).setWalkInName(v),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              style: const TextStyle(fontSize: 12),
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(hintText: 'Phone', isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), fillColor: Colors.white.withOpacity(0.05), filled: true),
-              onChanged: (v) => ref.read(unifiedSalesProvider.notifier).setWalkInPhone(v),
-            ),
-          ),
-        ],
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: Colors.grey[400], fontSize: 13)),
+        Text(value, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: isDiscount ? Colors.greenAccent : Colors.white)),
+      ],
     );
   }
 }
 
-// Cart Item Row
-class _CartItem extends StatelessWidget {
+class _CartItemRow extends ConsumerWidget {
   final SalesCartItem item;
-  final WidgetRef ref;
-  const _CartItem({required this.item, required this.ref});
+  const _CartItemRow({required this.item});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(10)),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
+            child: Icon(item.product.isSerialized ? LucideIcons.smartphone : LucideIcons.box, size: 20, color: Colors.grey[400]),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text('Rs. ${NumberFormat('#,###').format(item.product.sellingPrice)}', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), maxLines: 1),
+                const SizedBox(height: 2),
+                Text('Rs. ${NumberFormat('#,###').format(item.unitPrice)}', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
               ],
             ),
           ),
-          // Qty
-          Row(
-            mainAxisSize: MainAxisSize.min,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _QtyBtn(icon: LucideIcons.minus, onTap: () => ref.read(unifiedSalesProvider.notifier).updateQuantity(item.product.id, -1)),
-              Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text('${item.quantity}', style: const TextStyle(fontWeight: FontWeight.bold))),
-              _QtyBtn(icon: LucideIcons.plus, onTap: () => ref.read(unifiedSalesProvider.notifier).updateQuantity(item.product.id, 1)),
+              Text('Rs. ${NumberFormat('#,###').format(item.lineTotal)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 6),
+              Container(
+                decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), borderRadius: BorderRadius.circular(20)),
+                child: Row(
+                  children: [
+                    _QtyAction(icon: LucideIcons.minus, onTap: () => ref.read(unifiedSalesProvider.notifier).updateQuantity(item.product.id, -1)),
+                    Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text('${item.quantity}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+                    _QtyAction(icon: LucideIcons.plus, onTap: () => ref.read(unifiedSalesProvider.notifier).updateQuantity(item.product.id, 1)),
+                  ],
+                ),
+              ),
             ],
           ),
-          const SizedBox(width: 12),
-          Text('Rs. ${NumberFormat('#,###').format(item.lineTotal)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryColor)),
-          IconButton(icon: const Icon(LucideIcons.x, size: 14, color: Colors.red), onPressed: () => ref.read(unifiedSalesProvider.notifier).removeFromCart(item.product.id), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
         ],
       ),
     );
   }
 }
 
-class _QtyBtn extends StatelessWidget {
+class _QtyAction extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  const _QtyBtn({required this.icon, required this.onTap});
+  const _QtyAction({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      child: Container(padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(5)), child: Icon(icon, size: 12)),
-    );
-  }
-}
-
-// Cart Footer
-class _CartFooter extends StatelessWidget {
-  final UnifiedSalesState state;
-  final WidgetRef ref;
-  const _CartFooter({required this.state, required this.ref});
-
-  @override
-  Widget build(BuildContext context) {
-    final total = state.items.fold(0.0, (sum, i) => sum + i.lineTotal) - state.discountAmount;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1)))),
-      child: Column(
-        children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            const Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
-            Text('Rs. ${NumberFormat('#,###').format(total)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primaryColor)),
-          ]),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: OutlinedButton(onPressed: state.items.isEmpty ? null : () => ref.read(unifiedSalesProvider.notifier).holdCurrentOrder(), child: const Text('Hold', style: TextStyle(fontSize: 12)))),
-              const SizedBox(width: 10),
-              Expanded(flex: 2, child: ElevatedButton(
-                onPressed: state.items.isEmpty ? null : () async {
-                  final result = state.isDirectSale 
-                    ? await ref.read(unifiedSalesProvider.notifier).processDirectSale()
-                    : await ref.read(unifiedSalesProvider.notifier).saveOrder();
-                  if (result != null) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${state.isDirectSale ? 'Sale' : 'Order'} completed: $result'), backgroundColor: Colors.green));
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor, padding: const EdgeInsets.symmetric(vertical: 14)),
-                child: Text(state.isDirectSale ? 'Pay Now' : 'Save Order', style: const TextStyle(fontWeight: FontWeight.bold)),
-              )),
-            ],
-          ),
-        ],
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Icon(icon, size: 12, color: Colors.white70),
       ),
     );
   }
 }
 
-// ============================================================
-// TAB 2: Sales History
-// ============================================================
+// -----------------------------------------------------------------------------
+// PRODUCT CARD
+// -----------------------------------------------------------------------------
 
-class _SalesHistoryTab extends ConsumerStatefulWidget {
+class _ProductCard extends StatefulWidget {
+  final Product product;
+  final VoidCallback onTap;
+  const _ProductCard({required this.product, required this.onTap});
+
   @override
-  ConsumerState<_SalesHistoryTab> createState() => _SalesHistoryTabState();
+  State<_ProductCard> createState() => _ProductCardState();
 }
 
-class _SalesHistoryTabState extends ConsumerState<_SalesHistoryTab> {
-  String searchQuery = '';
-  String? statusFilter;
-  int currentPage = 0;
-  static const int pageSize = 12;
+class _ProductCardState extends State<_ProductCard> {
+  bool isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    final mockSales = _getMockSales();
-    final filtered = _filterSales(mockSales);
-    final paginated = _paginateSales(filtered);
-    final totalRevenue = mockSales.fold(0.0, (sum, s) => sum + (s['total'] as double));
-
-    return Column(
-      children: [
-        // Stats & Filters Row
-        Row(
-          children: [
-            _StatBadge(icon: LucideIcons.receipt, label: 'Total', value: '${mockSales.length}', color: Colors.blue),
-            const SizedBox(width: 12),
-            _StatBadge(icon: LucideIcons.dollarSign, label: 'Revenue', value: 'Rs. ${NumberFormat.compact().format(totalRevenue)}', color: Colors.green),
-            const Spacer(),
-            // Search
-            SizedBox(
-              width: 200,
-              child: TextField(
-                onChanged: (v) => setState(() { searchQuery = v; currentPage = 0; }),
-                decoration: InputDecoration(
-                  hintText: 'Search...',
-                  prefixIcon: const Icon(LucideIcons.search, size: 16),
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.05),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    final isOut = widget.product.stock <= 0;
+    
+    return MouseRegion(
+      onEnter: (_) => setState(() => isHovered = true),
+      onExit: (_) => setState(() => isHovered = false),
+      child: GestureDetector(
+        onTap: isOut ? null : widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: isHovered ? AppTheme.primaryColor.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isHovered ? AppTheme.primaryColor.withOpacity(0.5) : Colors.white.withOpacity(0.05),
+              width: isHovered ? 1.5 : 1,
+            ),
+            boxShadow: isHovered ? [BoxShadow(color: AppTheme.primaryColor.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 4))] : [],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Stack(
+                    children: [
+                      Center(
+                        child: Icon(
+                          widget.product.isSerialized ? LucideIcons.smartphone : LucideIcons.package,
+                          size: 36,
+                          color: isOut ? Colors.grey[700] : (isHovered ? AppTheme.primaryColor : Colors.grey[400]),
+                        ),
+                      ),
+                      if (isOut) 
+                        Positioned(
+                          top: 8, right: 8, 
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.red.withOpacity(0.8), borderRadius: BorderRadius.circular(6)),
+                            child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white)),
+                          )
+                        ),
+                      if (widget.product.isSerialized && !isOut)
+                        Positioned(
+                          top: 8, left: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(color: Colors.blue.withOpacity(0.2), borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.blue.withOpacity(0.3))),
+                            child: const Text('IMEI', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.blue)),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text(widget.product.sku, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Rs. ${NumberFormat.compact().format(widget.product.sellingPrice)}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isOut ? Colors.grey : AppTheme.primaryColor)),
+                        if (!isOut) 
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(color: AppTheme.primaryColor, shape: BoxShape.circle),
+                            child: const Icon(LucideIcons.plus, size: 12, color: Colors.white),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// HISTORY TAB
+// -----------------------------------------------------------------------------
+
+class _SalesHistoryTab extends ConsumerWidget {
+  const _SalesHistoryTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final salesAsync = ref.watch(_salesHistoryProvider);
+
+    return salesAsync.when(
+      data: (sales) {
+        if (sales.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(LucideIcons.history, size: 64, color: Colors.white.withOpacity(0.1)),
+                const SizedBox(height: 16),
+                Text('No sales history yet', style: TextStyle(color: Colors.grey[500])),
+              ],
             ),
-            const SizedBox(width: 12),
-            // Status Filter
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String?>(
-                  value: statusFilter,
-                  hint: const Text('Status', style: TextStyle(fontSize: 12)),
-                  items: [null, 'Completed', 'Pending', 'Cancelled'].map((s) => DropdownMenuItem(value: s, child: Text(s ?? 'All', style: const TextStyle(fontSize: 12)))).toList(),
-                  onChanged: (v) => setState(() { statusFilter = v; currentPage = 0; }),
-                  dropdownColor: AppTheme.darkBg,
+          );
+        }
+        
+        return Column(
+          children: [
+            // Stats Row
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Row(
+                children: [
+                  _StatCard(title: 'Total Sales', value: '${sales.length}', icon: LucideIcons.shoppingBag, color: Colors.blue),
+                  const SizedBox(width: 16),
+                  _StatCard(
+                    title: 'Revenue', 
+                    value: 'Rs. ${NumberFormat.compact().format(sales.fold(0.0, (sum, s) => sum + s.summary.netValue))}', 
+                    icon: LucideIcons.dollarSign, 
+                    color: Colors.green
+                  ),
+                ],
+              ),
+            ),
+            
+            // Table
+            Expanded(
+              child: GlassCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    // Table Header
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.1))),
+                        color: Colors.white.withOpacity(0.02),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(flex: 2, child: Text('INVOICE #', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[400]))),
+                          Expanded(flex: 2, child: Text('CUSTOMER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[400]))),
+                          Expanded(flex: 2, child: Text('DATE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[400]))),
+                          Expanded(flex: 2, child: Text('AMOUNT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[400]))),
+                          Expanded(flex: 1, child: Text('STATUS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[400]))),
+                        ],
+                      ),
+                    ),
+                    // Table Body
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: sales.length,
+                        itemBuilder: (context, index) {
+                          final sale = sales[index];
+                          final isAlt = index % 2 == 1;
+                          return Container(
+                            color: isAlt ? Colors.white.withOpacity(0.02) : Colors.transparent,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            child: Row(
+                              children: [
+                                Expanded(flex: 2, child: Text(sale.billNo, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white70))),
+                                Expanded(flex: 2, child: Text(sale.partyName, style: const TextStyle(fontSize: 13))),
+                                Expanded(flex: 2, child: Text(DateFormat('MMM dd, hh:mm a').format(sale.date), style: TextStyle(fontSize: 13, color: Colors.grey[500]))),
+                                Expanded(flex: 2, child: Text('Rs. ${NumberFormat('#,###').format(sale.summary.netValue)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryColor))),
+                                Expanded(
+                                  flex: 1, 
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: sale.status == InvoiceStatus.completed ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      sale.status.name.toUpperCase(), 
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: sale.status == InvoiceStatus.completed ? Colors.green : Colors.orange),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 16),
-        // Table
-        Expanded(
-          child: GlassCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.red))),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+  const _StatCard({required this.title, required this.value, required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GlassCard(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.1)))),
-                  child: const Row(children: [
-                    Expanded(flex: 2, child: Text('Invoice', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey))),
-                    Expanded(flex: 2, child: Text('Customer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey))),
-                    Expanded(flex: 2, child: Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey))),
-                    Expanded(flex: 1, child: Text('Items', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey))),
-                    Expanded(flex: 2, child: Text('Amount', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey))),
-                    Expanded(flex: 1, child: Text('Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey))),
-                  ]),
-                ),
-                // Rows
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: paginated.length,
-                    itemBuilder: (context, index) {
-                      final s = paginated[index];
-                      final statusColor = s['status'] == 'Completed' ? Colors.green : (s['status'] == 'Pending' ? Colors.orange : Colors.red);
-                      return Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05)))),
-                        child: Row(children: [
-                          Expanded(flex: 2, child: Text(s['invoice'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
-                          Expanded(flex: 2, child: Text(s['customer'], style: const TextStyle(fontSize: 12))),
-                          Expanded(flex: 2, child: Text(DateFormat('MMM dd, yyyy').format(DateTime.parse(s['date'])), style: const TextStyle(fontSize: 12))),
-                          Expanded(flex: 1, child: Text('${s['items']}', style: const TextStyle(fontSize: 12))),
-                          Expanded(flex: 2, child: Text('Rs. ${NumberFormat('#,###').format(s['total'])}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryColor))),
-                          Expanded(flex: 1, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(4)), child: Text(s['status'], style: TextStyle(fontSize: 10, color: statusColor, fontWeight: FontWeight.bold)))),
-                        ]),
-                      );
-                    },
-                  ),
-                ),
-                // Pagination
-                if (filtered.length > pageSize)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      Text('${currentPage * pageSize + 1}-${((currentPage + 1) * pageSize).clamp(0, filtered.length)} of ${filtered.length}', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-                      Row(children: [
-                        IconButton(icon: const Icon(LucideIcons.chevronLeft, size: 16), onPressed: currentPage > 0 ? () => setState(() => currentPage--) : null),
-                        Text('${currentPage + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        IconButton(icon: const Icon(LucideIcons.chevronRight, size: 16), onPressed: currentPage < (filtered.length / pageSize).ceil() - 1 ? () => setState(() => currentPage++) : null),
-                      ]),
-                    ]),
-                  ),
+                Text(title, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                const SizedBox(height: 2),
+                Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// ORDERS TAB (Online & Offline)
+// -----------------------------------------------------------------------------
+
+class _OrdersTab extends StatefulWidget {
+  const _OrdersTab();
+
+  @override
+  State<_OrdersTab> createState() => _OrdersTabState();
+}
+
+class _OrdersTabState extends State<_OrdersTab> with SingleTickerProviderStateMixin {
+  late TabController _orderTabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _orderTabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _orderTabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Tab Switcher
+        Container(
+          width: 300,
+          height: 40,
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: TabBar(
+            controller: _orderTabController,
+            indicator: BoxDecoration(
+              color: AppTheme.primaryColor,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.grey,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            dividerColor: Colors.transparent,
+            overlayColor: MaterialStateProperty.all(Colors.transparent),
+            tabs: const [
+              Tab(text: 'Offline Orders'),
+              Tab(text: 'Online Orders'),
+            ],
+          ),
+        ),
+        
+        // Tab Views
+        Expanded(
+          child: TabBarView(
+            controller: _orderTabController,
+            children: const [
+              _OfflineOrdersView(),
+              _OnlineOrdersView(),
+            ],
           ),
         ),
       ],
     );
   }
-
-  List<Map<String, dynamic>> _filterSales(List<Map<String, dynamic>> sales) {
-    return sales.where((s) {
-      if (searchQuery.isNotEmpty && !s['invoice'].toLowerCase().contains(searchQuery.toLowerCase()) && !s['customer'].toLowerCase().contains(searchQuery.toLowerCase())) return false;
-      if (statusFilter != null && s['status'] != statusFilter) return false;
-      return true;
-    }).toList();
-  }
-
-  List<Map<String, dynamic>> _paginateSales(List<Map<String, dynamic>> sales) {
-    final start = currentPage * pageSize;
-    return sales.sublist(start, (start + pageSize).clamp(0, sales.length));
-  }
-
-  List<Map<String, dynamic>> _getMockSales() {
-    return List.generate(40, (i) => {
-      'invoice': 'INV-${1000 + i}',
-      'customer': ['Ali Khan', 'Sara Ahmed', 'Usman Ali', 'Fatima Noor', 'Hassan'][i % 5],
-      'date': DateTime.now().subtract(Duration(days: i)).toIso8601String(),
-      'items': (i % 5) + 1,
-      'total': (15000 + (i * 1500)).toDouble(),
-      'status': ['Completed', 'Completed', 'Pending', 'Completed', 'Cancelled'][i % 5],
-    });
-  }
 }
 
-class _StatBadge extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-  const _StatBadge({required this.icon, required this.label, required this.value, required this.color});
+class _OfflineOrdersView extends ConsumerWidget {
+  const _OfflineOrdersView();
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withOpacity(0.2))),
-      child: Row(children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: 10),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[500])),
-          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
-        ]),
-      ]),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ordersAsync = ref.watch(_offlineOrdersProvider);
+
+    return ordersAsync.when(
+      data: (orders) {
+        if (orders.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(LucideIcons.clipboardList, size: 64, color: Colors.white.withOpacity(0.1)),
+                const SizedBox(height: 16),
+                Text('No pending offline orders', style: TextStyle(color: Colors.grey[500])),
+              ],
+            ),
+          );
+        }
+
+        return ListView.separated(
+          itemCount: orders.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final order = orders[index];
+            return InkWell(
+              onTap: () => _showOrderDetails(context, order, ref),
+              child: GlassCard(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 50, height: 50,
+                      decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                      child: const Icon(LucideIcons.box, color: Colors.blue),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(order.orderNo ?? order.billNo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(LucideIcons.user, size: 12, color: Colors.grey[500]),
+                              const SizedBox(width: 4),
+                              Text(order.partyName, style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                              const SizedBox(width: 16),
+                              Icon(LucideIcons.clock, size: 12, color: Colors.grey[500]),
+                              const SizedBox(width: 4),
+                              Text(DateFormat('MMM dd, hh:mm a').format(order.date), style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('Rs. ${NumberFormat('#,###').format(order.summary.netValue)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primaryColor)),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                          child: Text(order.status.name.toUpperCase(), style: const TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      icon: const Icon(LucideIcons.chevronRight, color: Colors.grey),
+                      onPressed: () => _showOrderDetails(context, order, ref),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.red))),
     );
   }
 }
 
-// ============================================================
-// TAB 3: Online Orders
-// ============================================================
+class _OnlineOrdersView extends StatelessWidget {
+  const _OnlineOrdersView();
 
-class _OnlineOrdersTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(LucideIcons.globe, size: 56, color: Colors.grey.withOpacity(0.3)),
+          Icon(LucideIcons.globe, size: 64, color: Colors.white.withOpacity(0.1)),
           const SizedBox(height: 16),
-          const Text('Online Orders', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          Text('Connect your online store to manage orders', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-          const SizedBox(height: 20),
-          OutlinedButton.icon(onPressed: () {}, icon: const Icon(LucideIcons.link, size: 14), label: const Text('Connect Store')),
+          Text('No online orders received', style: TextStyle(color: Colors.grey[500])),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: () {}, 
+            icon: const Icon(LucideIcons.refreshCw, size: 14), 
+            label: const Text('Refresh')
+          ),
         ],
       ),
     );
   }
 }
 
-// ============================================================
-// TAB 4: On Hold
-// ============================================================
+// -----------------------------------------------------------------------------
+// ON HOLD TAB
+// -----------------------------------------------------------------------------
 
 class _OnHoldTab extends ConsumerWidget {
+  const _OnHoldTab();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final heldOrders = ref.watch(unifiedSalesProvider).heldOrders;
@@ -682,19 +1120,21 @@ class _OnHoldTab extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(LucideIcons.pauseCircle, size: 56, color: Colors.grey.withOpacity(0.3)),
+            Icon(LucideIcons.pauseCircle, size: 64, color: Colors.white.withOpacity(0.1)),
             const SizedBox(height: 16),
-            const Text('No Held Orders', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Text('Press F3 in POS to hold an order', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+            Text('No orders on hold', style: TextStyle(color: Colors.grey[500], fontSize: 16)),
           ],
         ),
       );
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4, childAspectRatio: 1.4, crossAxisSpacing: 16, mainAxisSpacing: 16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 1.5,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
       itemCount: heldOrders.length,
       itemBuilder: (context, index) {
         final order = heldOrders.values.elementAt(index);
@@ -703,19 +1143,47 @@ class _OnHoldTab extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [
-                Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(6)), child: const Icon(LucideIcons.pauseCircle, color: Colors.orange, size: 16)),
-                const SizedBox(width: 10),
-                Expanded(child: Text(order.customerName ?? 'Walk-in', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), overflow: TextOverflow.ellipsis)),
-              ]),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                    child: Row(children: [
+                      const Icon(LucideIcons.clock, size: 12, color: Colors.orange),
+                      const SizedBox(width: 6),
+                      Text(DateFormat('hh:mm a').format(order.heldAt), style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ]),
+                  ),
+                  Text('ID: ${order.id.substring(order.id.length - 6)}', style: TextStyle(color: Colors.grey[600], fontSize: 11)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(order.customerName ?? 'Walk-in Customer', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('${order.itemCount} Items', style: TextStyle(color: Colors.grey[500], fontSize: 12)),
               const Spacer(),
-              Text('${order.itemCount} items • Rs. ${NumberFormat('#,###').format(order.total)}', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(child: OutlinedButton(onPressed: () => ref.read(unifiedSalesProvider.notifier).deleteHeldOrder(order.id), style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red)), child: const Text('Delete', style: TextStyle(fontSize: 11)))),
-                const SizedBox(width: 8),
-                Expanded(child: ElevatedButton(onPressed: () => ref.read(unifiedSalesProvider.notifier).resumeHeldOrder(order.id), style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor), child: const Text('Resume', style: TextStyle(fontSize: 11)))),
-              ]),
+              const Divider(color: Colors.white10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Rs. ${NumberFormat('#,###').format(order.total)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primaryColor)),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(LucideIcons.trash2, size: 18, color: Colors.redAccent),
+                        onPressed: () => ref.read(unifiedSalesProvider.notifier).deleteHeldOrder(order.id),
+                        tooltip: 'Delete',
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () => ref.read(unifiedSalesProvider.notifier).resumeHeldOrder(order.id),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor, padding: const EdgeInsets.symmetric(horizontal: 16)),
+                        child: const Text('Resume'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ],
           ),
         );
@@ -723,3 +1191,156 @@ class _OnHoldTab extends ConsumerWidget {
     );
   }
 }
+
+final _salesHistoryProvider = FutureProvider.autoDispose<List<Invoice>>((ref) async {
+  final repo = ref.watch(invoiceRepositoryProvider);
+  return repo.getAll(type: InvoiceType.sale);
+});
+
+final _offlineOrdersProvider = FutureProvider.autoDispose<List<Invoice>>((ref) async {
+  final repo = ref.watch(invoiceRepositoryProvider);
+  // Fetch pending offline orders (sales that are pending)
+  return repo.getAll(status: InvoiceStatus.pending, type: InvoiceType.sale);
+});
+
+void _showOrderDetails(BuildContext context, Invoice order, WidgetRef ref) {
+  showDialog(
+    context: context,
+    builder: (context) => Dialog(
+      backgroundColor: Colors.transparent,
+      child: GlassCard(
+        width: 500,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(order.orderNo ?? order.billNo, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(DateFormat('MMM dd, yyyy - hh:mm a').format(order.date), style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                  ],
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(LucideIcons.printer, size: 20, color: Colors.blue),
+                      onPressed: () {
+                        // PDF Print logic here
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(LucideIcons.x, size: 20)),
+                  ],
+                ),
+              ],
+            ),
+            const Divider(height: 32, color: Colors.white10),
+            
+            // Customer Details
+            Row(
+              children: [
+                Icon(LucideIcons.user, size: 16, color: AppTheme.primaryColor),
+                const SizedBox(width: 8),
+                const Text('Customer Details', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(order.partyName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  if (order.customerMobile != null) ...[
+                    const SizedBox(height: 4),
+                    Text(order.customerMobile!, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  ]
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Items
+            Row(
+              children: [
+                Icon(LucideIcons.shoppingBag, size: 16, color: AppTheme.primaryColor),
+                const SizedBox(width: 8),
+                const Text('Order Items', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: ListView.separated(
+                itemCount: order.items.length,
+                separatorBuilder: (_, __) => const Divider(height: 16, color: Colors.white10),
+                itemBuilder: (context, index) {
+                  final item = order.items[index];
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item.productName, style: const TextStyle(fontSize: 13)),
+                            if (item.imei != null) Text('IMEI: ${item.imei}', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+                          ],
+                        ),
+                      ),
+                      Text('x${item.quantity}', style: TextStyle(color: Colors.grey[400])),
+                      const SizedBox(width: 16),
+                      Text('Rs. ${NumberFormat("#,###").format(item.lineTotal)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  );
+                },
+              ),
+            ),
+            const Divider(height: 32, color: Colors.white10),
+            
+            // Totals
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Total Amount', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  'Rs. ${NumberFormat("#,###").format(order.summary.netValue)}',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Actions
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Update Status Logic - For now just close
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Mark as Completed', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+

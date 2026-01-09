@@ -138,6 +138,7 @@ extension POMapper on PurchaseOrder {
     final itemsJson = jsonEncode(items.map((i) => {
       'productId': i.productId,
       'productName': i.productName,
+      'description': i.description,
       'quantity': i.quantity,
       'costPrice': i.costPrice,
       'imeis': i.imeis,
@@ -164,6 +165,7 @@ extension POPersistenceMapper on PurchaseOrderPersistence {
     final items = itemsList.map((i) => PurchaseOrderItem(
       productId: i['productId'] ?? '',
       productName: i['productName'] ?? '',
+      description: i['description'],
       quantity: i['quantity'] ?? 0,
       costPrice: (i['costPrice'] as num?)?.toDouble() ?? 0.0,
       imeis: (i['imeis'] as List<dynamic>?)?.map((e) => e.toString()).toList(),

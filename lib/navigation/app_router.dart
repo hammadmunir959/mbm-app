@@ -6,7 +6,6 @@ import 'package:cellaris/features/dashboard/view/dashboard_screen.dart';
 import 'package:cellaris/features/sales/view/sales_screen.dart';
 import 'package:cellaris/features/inventory/view/inventory_hub_screen.dart';
 import 'package:cellaris/features/repairs/view/repairs_screen.dart';
-import 'package:cellaris/features/analytics/view/analytics_screen.dart';
 import 'package:cellaris/features/customers/view/customers_screen.dart';
 import 'package:cellaris/features/suppliers/view/suppliers_screen.dart';
 import 'package:cellaris/features/settings/view/settings_screen.dart';
@@ -228,13 +227,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/transactions',
             name: 'transactions',
             builder: (context, state) => const TransactionsHistoryScreen(),
-          ),
-          
-          // Analytics
-          GoRoute(
-            path: '/analytics',
-            name: 'analytics',
-            builder: (context, state) => const AnalyticsScreen(),
           ),
           
           // Accounts

@@ -1,19 +1,15 @@
-import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:animate_do/animate_do.dart';
+import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 import 'package:cellaris/core/theme/app_theme.dart';
-import 'package:cellaris/core/widgets/glass_card.dart';
-import 'package:cellaris/core/widgets/primary_button.dart';
 import 'package:cellaris/features/inventory/controller/inventory_controller.dart';
-import 'package:cellaris/core/models/app_models.dart';
-import 'package:cellaris/shared/controller/shared_controller.dart';
 import 'package:cellaris/features/inventory/controller/purchase_order_controller.dart';
-import '../purchase_order_dialog.dart';
-import '../add_product_modal.dart';
+import 'package:cellaris/shared/controller/shared_controller.dart';
+import 'package:cellaris/core/models/app_models.dart';
 
+/// Low Stock Tab - Feature-Rich with PO Integration
 class LowStockTab extends ConsumerStatefulWidget {
   const LowStockTab({super.key});
 
@@ -22,385 +18,566 @@ class LowStockTab extends ConsumerStatefulWidget {
 }
 
 class _LowStockTabState extends ConsumerState<LowStockTab> {
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-  String _selectedStatus = 'All';
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  String _filter = 'All'; // All, Out of Stock, Low Stock
+  final _selectedProducts = <String>{}; // For batch PO creation
+  final _f = NumberFormat('#,###');
 
   @override
   Widget build(BuildContext context) {
     final products = ref.watch(productProvider);
-    
-    final lowStockProducts = products.where((p) {
-      final isLow = p.stock <= p.lowStockThreshold;
-      if (!isLow) return false;
+    final suppliers = ref.watch(supplierProvider);
 
-      final matchesSearch = p.name.toLowerCase().contains(_searchQuery.toLowerCase()) || 
-                           p.sku.toLowerCase().contains(_searchQuery.toLowerCase());
-      
-      if (!matchesSearch) return false;
+    // Filter low and out of stock
+    final outOfStock = products.where((p) => p.stock == 0).toList();
+    final lowStock = products.where((p) => p.stock > 0 && p.stock <= p.lowStockThreshold).toList();
+    final allAlerts = [...outOfStock, ...lowStock];
 
-      if (_selectedStatus == 'Out of Stock') return p.stock == 0;
-      if (_selectedStatus == 'Critical') return p.stock > 0 && p.stock <= (p.lowStockThreshold / 2);
-      
-      return true;
-    }).toList();
+    // Apply filter
+    List<Product> filtered;
+    switch (_filter) {
+      case 'Out of Stock':
+        filtered = outOfStock;
+        break;
+      case 'Low Stock':
+        filtered = lowStock;
+        break;
+      default:
+        filtered = allAlerts;
+    }
 
-    final outOfStockCount = products.where((p) => p.stock == 0).length;
-    final criticalCount = products.where((p) => p.stock > 0 && p.stock <= (p.lowStockThreshold / 2)).length;
+    // Calculate reorder cost
+    final totalReorderCost = allAlerts.fold(0.0, (sum, p) {
+      final qty = p.lowStockThreshold - p.stock + 10;
+      return sum + (p.purchasePrice * qty);
+    });
 
-    return FadeInUp(
-      duration: const Duration(milliseconds: 400),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // KPI Cards
-          Row(
+    return Column(
+      children: [
+        // Stats + Actions Row
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
             children: [
-              Expanded(child: _buildKPI('Total Alerts', lowStockProducts.length.toString(), LucideIcons.alertTriangle, Colors.orange)),
-              const SizedBox(width: 16),
-              Expanded(child: _buildKPI('Out of Stock', outOfStockCount.toString(), LucideIcons.package, Colors.red)),
-              const SizedBox(width: 16),
-              Expanded(child: _buildKPI('Critical Level', criticalCount.toString(), LucideIcons.zap, Colors.amber)),
-              const SizedBox(width: 16),
-              Expanded(
-                child: GlassCard(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('QUICK ACTIONS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-                          const SizedBox(height: 8),
-                          PrimaryButton(
-                            label: 'Create Bulk PO',
-                            onPressed: () => _showBulkOrderDialog(context),
-                            icon: LucideIcons.shoppingCart,
-                            width: 160,
-                          ),
-                        ],
-                      ),
-                      const Icon(LucideIcons.shoppingBag, size: 24, color: AppTheme.primaryColor),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Filters
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (val) => setState(() => _searchQuery = val),
-                  decoration: InputDecoration(
-                    hintText: 'Search by product name or SKU...',
-                    prefixIcon: const Icon(LucideIcons.search, size: 18),
-                    filled: true,
-                    fillColor: Theme.of(context).cardColor.withOpacity(0.5),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
+              _buildStat('Out of Stock', '${outOfStock.length}', Colors.red, LucideIcons.xCircle),
+              const SizedBox(width: 12),
+              _buildStat('Low Stock', '${lowStock.length}', Colors.orange, LucideIcons.alertTriangle),
+              const SizedBox(width: 12),
+              _buildStat('Total Alerts', '${allAlerts.length}', Colors.amber, LucideIcons.bell),
+              const SizedBox(width: 12),
+              _buildStat('Est. Reorder', 'Rs. ${_f.format(totalReorderCost)}', Colors.teal, LucideIcons.shoppingCart),
+              const Spacer(),
+              // Filter dropdown
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                height: 36,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
-                    value: _selectedStatus,
-                    items: ['All', 'Out of Stock', 'Critical', 'Low Stock'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
-                    onChanged: (val) => setState(() => _selectedStatus = val ?? 'All'),
+                    value: _filter,
+                    dropdownColor: const Color(0xFF1E293B),
+                    style: const TextStyle(fontSize: 12),
+                    items: ['All', 'Out of Stock', 'Low Stock'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                    onChanged: (v) => setState(() => _filter = v ?? 'All'),
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
-              OutlinedButton.icon(
-                onPressed: () => _exportLowStockData(context, lowStockProducts),
-                icon: const Icon(LucideIcons.download, size: 16),
-                label: const Text('Export'),
-                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              ),
+              if (_selectedProducts.isNotEmpty) ...[
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: () => _showBatchPODialog(filtered.where((p) => _selectedProducts.contains(p.id)).toList(), suppliers),
+                  icon: const Icon(LucideIcons.shoppingCart, size: 14),
+                  label: Text('Create PO (${_selectedProducts.length})', style: const TextStyle(fontSize: 12)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                ),
+              ],
             ],
           ),
-          const SizedBox(height: 20),
+        ),
 
-          // List
-          Expanded(
-            child: lowStockProducts.isEmpty
-                ? _buildEmptyState()
-                : _buildProductList(lowStockProducts),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildKPI(String label, String value, IconData icon, Color color) {
-    return GlassCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey)),
-              Icon(icon, size: 16, color: color),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(LucideIcons.checkCircle2, size: 64, color: AppTheme.accentColor.withOpacity(0.2)),
-          const SizedBox(height: 16),
-          const Text('Inventory Secured', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const Text('All products are currently above the safety threshold.', style: TextStyle(color: Colors.grey)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductList(List<Product> products) {
-    return GlassCard(
-      padding: EdgeInsets.zero,
-      child: ListView.separated(
-        itemCount: products.length,
-        separatorBuilder: (context, index) => Divider(color: Colors.white.withOpacity(0.05), height: 1),
-        itemBuilder: (context, index) {
-          final p = products[index];
-          final bool isOut = p.stock == 0;
-          final bool isCritical = p.stock <= (p.lowStockThreshold / 2);
-          final double progress = (p.stock / p.lowStockThreshold).clamp(0.0, 1.0);
-
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        // Select all / Clear
+        if (filtered.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
               children: [
-                Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(color: (isOut ? Colors.red : (isCritical ? Colors.orange : Colors.blue)).withOpacity(0.1), shape: BoxShape.circle),
-                  child: Icon(isOut ? LucideIcons.packageX : (isCritical ? LucideIcons.alertCircle : LucideIcons.trendingDown), color: isOut ? Colors.red : (isCritical ? Colors.orange : Colors.blue), size: 20),
+                Text('${filtered.length} items need attention', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: () => setState(() {
+                    if (_selectedProducts.length == filtered.length) {
+                      _selectedProducts.clear();
+                    } else {
+                      _selectedProducts.addAll(filtered.map((p) => p.id));
+                    }
+                  }),
+                  icon: Icon(_selectedProducts.length == filtered.length ? LucideIcons.checkSquare : LucideIcons.square, size: 12),
+                  label: Text(_selectedProducts.length == filtered.length ? 'Deselect All' : 'Select All', style: const TextStyle(fontSize: 10)),
+                  style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
                 ),
-                const SizedBox(width: 20),
+              ],
+            ),
+          ),
+
+        // Alerts List
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.02),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            ),
+            child: filtered.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(LucideIcons.packageCheck, size: 48, color: Colors.green[400]),
+                        const SizedBox(height: 12),
+                        Text('All products are well stocked!', style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+                        const SizedBox(height: 4),
+                        Text('No items need reordering', style: TextStyle(color: Colors.grey[600], fontSize: 11)),
+                      ],
+                    ),
+                  )
+                : Column(
+                    children: [
+                      // Header row
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+                        ),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 32), // Checkbox
+                            const SizedBox(width: 20), // Status icon
+                            Expanded(flex: 3, child: Text('Product', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey[500]))),
+                            SizedBox(width: 70, child: Text('Current', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey[500]))),
+                            SizedBox(width: 70, child: Text('Reorder At', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey[500]))),
+                            SizedBox(width: 70, child: Text('Order Qty', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey[500]))),
+                            SizedBox(width: 100, child: Text('Est. Cost', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey[500]))),
+                            const SizedBox(width: 120), // Actions
+                          ],
+                        ),
+                      ),
+                      // List
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) => _buildAlertRow(filtered[index], suppliers),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStat(String label, String value, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color)),
+              Text(label, style: TextStyle(fontSize: 9, color: Colors.grey[500])),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAlertRow(Product product, List<Supplier> suppliers) {
+    final isOut = product.stock == 0;
+    final color = isOut ? Colors.red : Colors.orange;
+    final reorderQty = product.lowStockThreshold - product.stock + 10;
+    final estCost = product.purchasePrice * reorderQty;
+    final isSelected = _selectedProducts.contains(product.id);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+      child: Material(
+        color: isSelected ? Colors.teal.withValues(alpha: 0.1) : Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+        child: InkWell(
+          onTap: () => setState(() {
+            if (isSelected) {
+              _selectedProducts.remove(product.id);
+            } else {
+              _selectedProducts.add(product.id);
+            }
+          }),
+          borderRadius: BorderRadius.circular(6),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              border: Border(left: BorderSide(color: color, width: 3)),
+            ),
+            child: Row(
+              children: [
+                // Checkbox
+                Checkbox(
+                  value: isSelected,
+                  onChanged: (v) => setState(() {
+                    if (v == true) {
+                      _selectedProducts.add(product.id);
+                    } else {
+                      _selectedProducts.remove(product.id);
+                    }
+                  }),
+                  activeColor: Colors.teal,
+                  side: BorderSide(color: Colors.grey[600]!),
+                ),
+                // Alert icon
+                Icon(isOut ? LucideIcons.xCircle : LucideIcons.alertTriangle, size: 16, color: color),
+                const SizedBox(width: 12),
+                // Product info
                 Expanded(
                   flex: 3,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                      const SizedBox(height: 2),
-                      Text('SKU: ${p.sku}', style: const TextStyle(fontSize: 11, color: Colors.grey, fontFeatures: [FontFeature.tabularFigures()])),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                      Text(product.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('${p.stock} Units', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isOut ? Colors.red : (isCritical ? Colors.orange : Colors.white))),
-                          Text('Target: ${p.lowStockThreshold}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                          Text(product.brand ?? '', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)),
+                            child: Text(isOut ? 'OUT' : 'LOW', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600, color: color)),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
-                        child: LinearProgressIndicator(value: progress, minHeight: 4, backgroundColor: Colors.white.withOpacity(0.05), valueColor: AlwaysStoppedAnimation<Color>(isOut ? Colors.red : (isCritical ? Colors.orange : AppTheme.primaryColor))),
-                      ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 40),
-                _buildStatusBadge(isOut, isCritical),
-                const SizedBox(width: 40),
-                PrimaryButton(label: 'Create PO', onPressed: () => _showReplenishDialog([p]), width: 100, height: 36, fontSize: 12),
-                const SizedBox(width: 12),
-                PopupMenuButton<String>(
-                  icon: const Icon(LucideIcons.moreHorizontal, size: 20),
-                  onSelected: (value) {
-                    if (value == 'edit') _showAddProductDialog(context, product: p);
-                    else if (value == 'adjust') _showStockAdjustmentDialog(context, p);
-                    else if (value == 'delete') _confirmDelete(context, p);
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'edit', child: Row(children: [Icon(LucideIcons.edit, size: 16), SizedBox(width: 8), Text('Edit')])),
-                    const PopupMenuItem(value: 'adjust', child: Row(children: [Icon(LucideIcons.sliders, size: 16), SizedBox(width: 8), Text('Adjust Stock')])),
-                    const PopupMenuItem(value: 'delete', child: Row(children: [Icon(LucideIcons.trash2, size: 16, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))])),
+                // Current Stock
+                SizedBox(
+                  width: 70,
+                  child: Text('${product.stock}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: color)),
+                ),
+                // Reorder Point
+                SizedBox(
+                  width: 70,
+                  child: Text('${product.lowStockThreshold}', style: const TextStyle(fontSize: 12)),
+                ),
+                // Suggested Order
+                SizedBox(
+                  width: 70,
+                  child: Text('+$reorderQty', style: TextStyle(fontSize: 12, color: Colors.green[400], fontWeight: FontWeight.w500)),
+                ),
+                // Cost
+                SizedBox(
+                  width: 100,
+                  child: Text('Rs. ${_f.format(estCost)}', style: TextStyle(fontSize: 11, color: Colors.grey[400])),
+                ),
+                // Quick actions
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () => _showQuickPODialog(product, reorderQty, suppliers),
+                      icon: const Icon(LucideIcons.shoppingCart, size: 12),
+                      label: const Text('Reorder', style: TextStyle(fontSize: 10)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        minimumSize: const Size(0, 28),
+                      ),
+                    ),
                   ],
                 ),
               ],
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(bool isOut, bool isCritical) {
-    final label = isOut ? 'Out of Stock' : (isCritical ? 'Critical' : 'Low Stock');
-    final color = isOut ? Colors.red : (isCritical ? Colors.orange : Colors.blue);
-    return Container(
-      width: 100,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6), border: Border.all(color: color.withOpacity(0.2))),
-      child: Center(child: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold))),
-    );
-  }
-
-  void _showReplenishDialog(List<Product> products) {
-    final items = products.map((p) => PurchaseOrderItem(productId: p.id, productName: p.name, quantity: p.lowStockThreshold * 2, costPrice: p.purchasePrice)).toList();
-    showDialog(context: context, barrierDismissible: false, builder: (context) => PurchaseOrderDialog(initialItems: items));
-  }
-
-  void _showBulkOrderDialog(BuildContext context) {
-    final draftPOs = ref.read(purchaseOrderProvider).where((p) => p.status == PurchaseOrderStatus.draft).toList();
-    final draftItems = <PurchaseOrderItem>[];
-    for (final po in draftPOs) draftItems.addAll(po.items);
-
-    final lowStockProducts = ref.read(productProvider).where((p) => p.stock <= p.lowStockThreshold).toList();
-    final lowStockItems = lowStockProducts.map((p) => PurchaseOrderItem(productId: p.id, productName: p.name, quantity: p.lowStockThreshold * 2, costPrice: p.purchasePrice)).toList();
-
-    final Map<String, PurchaseOrderItem> itemMap = {};
-    for (final item in draftItems) {
-      if (itemMap.containsKey(item.productId)) {
-        final existing = itemMap[item.productId]!;
-        itemMap[item.productId] = existing.copyWith(quantity: existing.quantity + item.quantity);
-      } else {
-        itemMap[item.productId] = item;
-      }
-    }
-    for (final item in lowStockItems) {
-      if (itemMap.containsKey(item.productId)) {
-        final existing = itemMap[item.productId]!;
-        itemMap[item.productId] = existing.copyWith(quantity: existing.quantity + item.quantity);
-      } else {
-        itemMap[item.productId] = item;
-      }
-    }
-
-    final mergedItems = itemMap.values.toList();
-    if (mergedItems.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No items to order.'), backgroundColor: Colors.orange));
-      return;
-    }
-    showDialog(context: context, barrierDismissible: false, builder: (context) => PurchaseOrderDialog(initialItems: mergedItems));
-  }
-
-  void _showAddProductDialog(BuildContext context, {Product? product}) {
-    showDialog(context: context, barrierDismissible: false, builder: (context) => AddProductModal(product: product));
-  }
-
-  void _confirmDelete(BuildContext context, Product product) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.darkSurface,
-        title: const Text('Delete Product'),
-        content: Text('Delete "${product.name}"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(onPressed: () { ref.read(productProvider.notifier).deleteProduct(product.id); Navigator.pop(context); }, style: TextButton.styleFrom(foregroundColor: Colors.red), child: const Text('Delete')),
-        ],
-      ),
-    );
-  }
-
-  void _showStockAdjustmentDialog(BuildContext context, Product product) {
-    final qtyCtrl = TextEditingController();
-    String type = 'add';
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: AppTheme.darkSurface,
-          title: const Row(children: [Icon(LucideIcons.sliders, color: AppTheme.primaryColor), SizedBox(width: 12), Text('Adjust Stock')]),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Product: ${product.name}'),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: _buildAdjustOption(type == 'add', 'Add', Colors.green, LucideIcons.plus, () => setDialogState(() => type = 'add'))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildAdjustOption(type == 'remove', 'Remove', Colors.red, LucideIcons.minus, () => setDialogState(() => type = 'remove'))),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(controller: qtyCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantity')),
-            ],
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            PrimaryButton(label: 'Apply', width: 100, onPressed: () {
-              final qty = int.tryParse(qtyCtrl.text);
-              if (qty == null || qty <= 0) return;
-              ref.read(productProvider.notifier).updateStock(product.id, type == 'add' ? qty : -qty);
-              Navigator.pop(context);
-            }),
-          ],
         ),
       ),
     );
   }
 
-  Widget _buildAdjustOption(bool selected, String label, Color color, IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: selected ? color.withOpacity(0.1) : Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(8), border: Border.all(color: selected ? color : Colors.transparent)),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 18, color: selected ? color : Colors.grey), const SizedBox(width: 8), Text(label, style: TextStyle(color: selected ? color : Colors.grey))]),
+  void _showQuickPODialog(Product product, int suggestedQty, List<Supplier> suppliers) {
+    final qtyController = TextEditingController(text: suggestedQty.toString());
+    Supplier? selectedSupplier = suppliers.isNotEmpty ? suppliers.first : null;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
+          backgroundColor: const Color(0xFF1E293B),
+          child: Container(
+            width: 400,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Quick Reorder', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(width: 3, height: 24, decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(2))),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(product.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            Text('Current stock: ${product.stock}', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (suppliers.isNotEmpty) ...[
+                  const Text('Supplier', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<Supplier>(
+                    value: selectedSupplier,
+                    dropdownColor: const Color(0xFF1E293B),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.04),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    ),
+                    items: suppliers.map((s) => DropdownMenuItem(value: s, child: Text(s.name, style: const TextStyle(fontSize: 13)))).toList(),
+                    onChanged: (v) => setDialogState(() => selectedSupplier = v),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                const Text('Order Quantity', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: qtyController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(fontSize: 14),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.04),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Cost preview
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Estimated Cost', style: TextStyle(fontSize: 12)),
+                      Text('Rs. ${_f.format(product.purchasePrice * (int.tryParse(qtyController.text) ?? 0))}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.teal)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => _createPurchaseOrder(ctx, selectedSupplier, [product], [int.tryParse(qtyController.text) ?? suggestedQty]),
+                      icon: const Icon(LucideIcons.check, size: 14),
+                      label: const Text('Create PO'),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  void _exportLowStockData(BuildContext context, List<Product> products) async {
-    if (products.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No low stock items to export'), backgroundColor: Colors.orange));
+  void _showBatchPODialog(List<Product> products, List<Supplier> suppliers) {
+    Supplier? selectedSupplier = suppliers.isNotEmpty ? suppliers.first : null;
+    final quantities = <String, int>{for (var p in products) p.id: p.lowStockThreshold - p.stock + 10};
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
+          backgroundColor: const Color(0xFF1E293B),
+          child: Container(
+            width: 500,
+            constraints: const BoxConstraints(maxHeight: 600),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Create Batch PO (${products.length} items)', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 16),
+                if (suppliers.isNotEmpty) ...[
+                  const Text('Supplier', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<Supplier>(
+                    value: selectedSupplier,
+                    dropdownColor: const Color(0xFF1E293B),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.04),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
+                    ),
+                    items: suppliers.map((s) => DropdownMenuItem(value: s, child: Text(s.name, style: const TextStyle(fontSize: 13)))).toList(),
+                    onChanged: (v) => setDialogState(() => selectedSupplier = v),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                const Text('Items', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: products.length,
+                      itemBuilder: (ctx, index) {
+                        final p = products[index];
+                        return ListTile(
+                          dense: true,
+                          title: Text(p.name, style: const TextStyle(fontSize: 12)),
+                          subtitle: Text('Cost: Rs. ${_f.format(p.purchasePrice)}', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                          trailing: SizedBox(
+                            width: 60,
+                            child: TextField(
+                              controller: TextEditingController(text: quantities[p.id].toString()),
+                              keyboardType: TextInputType.number,
+                              style: const TextStyle(fontSize: 12),
+                              textAlign: TextAlign.center,
+                              decoration: InputDecoration(
+                                isDense: true,
+                                filled: true,
+                                fillColor: Colors.white.withValues(alpha: 0.05),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
+                                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                              ),
+                              onChanged: (v) => quantities[p.id] = int.tryParse(v) ?? 0,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Total Estimated Cost', style: TextStyle(fontSize: 12)),
+                      Text(
+                        'Rs. ${_f.format(products.fold(0.0, (sum, p) => sum + (p.purchasePrice * (quantities[p.id] ?? 0))))}',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.teal),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => _createPurchaseOrder(ctx, selectedSupplier, products, products.map((p) => quantities[p.id] ?? 0).toList()),
+                      icon: const Icon(LucideIcons.check, size: 14),
+                      label: const Text('Create PO'),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _createPurchaseOrder(BuildContext ctx, Supplier? supplier, List<Product> products, List<int> quantities) {
+    if (supplier == null) {
+      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Please select a supplier'), backgroundColor: Colors.orange));
       return;
     }
-    final buffer = StringBuffer();
-    buffer.writeln('Name,SKU,Current Stock,Threshold,Status');
-    for (final p in products) {
-      final status = p.stock == 0 ? 'Out of Stock' : (p.stock <= (p.lowStockThreshold / 2) ? 'Critical' : 'Low Stock');
-      buffer.writeln('"${p.name}","${p.sku}",${p.stock},${p.lowStockThreshold},"$status"');
+
+    final items = <PurchaseOrderItem>[];
+    for (var i = 0; i < products.length; i++) {
+      if (quantities[i] > 0) {
+        items.add(PurchaseOrderItem(
+          productId: products[i].id,
+          productName: products[i].name,
+          quantity: quantities[i],
+          costPrice: products[i].purchasePrice,
+        ));
+      }
     }
-    try {
-      final ts = DateTime.now().toIso8601String().replaceAll(':', '-').substring(0, 19);
-      final file = File('${Platform.environment['HOME'] ?? '/tmp'}/Downloads/low_stock_report_$ts.csv');
-      await file.writeAsString(buffer.toString());
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exported ${products.length} items'), backgroundColor: Colors.green));
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red));
+
+    if (items.isEmpty) {
+      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Please add quantities'), backgroundColor: Colors.orange));
+      return;
     }
+
+    ref.read(purchaseOrderProvider.notifier).addPurchaseOrder(
+          supplierId: supplier.id,
+          supplierName: supplier.name,
+          items: items,
+        );
+
+    // Clear selections
+    setState(() => _selectedProducts.clear());
+
+    Navigator.pop(ctx);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('PO created for ${items.length} items'), backgroundColor: Colors.teal),
+    );
   }
 }

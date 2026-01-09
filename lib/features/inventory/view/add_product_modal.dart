@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:animate_do/animate_do.dart';
 import 'package:cellaris/core/theme/app_theme.dart';
-import 'package:cellaris/core/widgets/glass_card.dart';
-import 'package:cellaris/core/widgets/primary_button.dart';
 import 'package:cellaris/features/inventory/controller/inventory_controller.dart';
 import 'package:cellaris/shared/controller/shared_controller.dart';
 import 'package:cellaris/core/models/app_models.dart';
 import 'package:uuid/uuid.dart';
 
+/// Simplified Add/Edit Product Modal - Minimalist Design
 class AddProductModal extends ConsumerStatefulWidget {
   final Product? product;
   const AddProductModal({super.key, this.product});
@@ -21,538 +19,287 @@ class AddProductModal extends ConsumerStatefulWidget {
 class _AddProductModalState extends ConsumerState<AddProductModal> {
   final _formKey = GlobalKey<FormState>();
   
-  // Controllers
-  final nameController = TextEditingController();
-  final brandController = TextEditingController();
-  final categoryController = TextEditingController();
-  final variantController = TextEditingController();
-  final costPriceController = TextEditingController();
-  final salePriceController = TextEditingController();
-  final quantityController = TextEditingController();
-  final skuController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _brandController = TextEditingController();
+  final _categoryController = TextEditingController();
+  final _costPriceController = TextEditingController();
+  final _salePriceController = TextEditingController();
+  final _quantityController = TextEditingController();
   
-  // State
-  String? selectedSupplier;
-  ProductCondition condition = ProductCondition.new_;
-  bool isActive = true;
-  bool isSerialized = true; // TRUE for mobiles (requires IMEI), FALSE for accessories
-  bool isEditing = false;
-  bool isLoading = false;
-  String? generatedBarcode;
+  String? _selectedSupplier;
+  ProductCondition _condition = ProductCondition.new_;
+  bool _isLoading = false;
+  bool get _isEditing => widget.product != null;
 
   @override
   void initState() {
     super.initState();
     if (widget.product != null) {
-      isEditing = true;
       final p = widget.product!;
-      nameController.text = p.name;
-      brandController.text = p.brand ?? '';
-      categoryController.text = p.category;
-      variantController.text = p.variant ?? '';
-      costPriceController.text = p.purchasePrice.toString();
-      salePriceController.text = p.sellingPrice.toString();
-      quantityController.text = p.stock.toString();
-      skuController.text = p.sku;
-      selectedSupplier = p.supplierId;
-      condition = p.condition;
-      isActive = p.isActive;
-      isSerialized = p.isSerialized;
+      _nameController.text = p.name;
+      _brandController.text = p.brand ?? '';
+      _categoryController.text = p.category;
+      _costPriceController.text = p.purchasePrice.toString();
+      _salePriceController.text = p.sellingPrice.toString();
+      _quantityController.text = p.stock.toString();
+      _selectedSupplier = p.supplierId;
+      _condition = p.condition;
     }
   }
 
   @override
   void dispose() {
-    nameController.dispose();
-    brandController.dispose();
-    categoryController.dispose();
-    variantController.dispose();
-    costPriceController.dispose();
-    salePriceController.dispose();
-    quantityController.dispose();
-    skuController.dispose();
+    _nameController.dispose();
+    _brandController.dispose();
+    _categoryController.dispose();
+    _costPriceController.dispose();
+    _salePriceController.dispose();
+    _quantityController.dispose();
     super.dispose();
   }
 
-  void _generateSKU() {
-    setState(() {
-      generatedBarcode = 'SKU-${const Uuid().v4().substring(0, 8).toUpperCase()}';
-      skuController.text = generatedBarcode!;
-    });
-  }
-
-  void _scanBarcode() async {
-    // Mocking barcode scan behavior
-    setState(() => isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-        skuController.text = 'SCN-${const Uuid().v4().substring(0, 8).toUpperCase()}';
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Barcode scanned successfully!')),
-      );
-    }
-  }
-
-  void _handleSubmit() async {
+  Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => isLoading = true);
-    
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
+    setState(() => _isLoading = true);
 
-    final newProduct = Product(
-      id: isEditing ? widget.product!.id : const Uuid().v4(),
-      name: nameController.text,
-      sku: skuController.text,
-      brand: brandController.text.isNotEmpty ? brandController.text : null,
-      category: categoryController.text,
-      variant: variantController.text.isNotEmpty ? variantController.text : null,
-      purchasePrice: double.tryParse(costPriceController.text) ?? 0,
-      sellingPrice: double.tryParse(salePriceController.text) ?? 0,
-      stock: int.tryParse(quantityController.text) ?? 0,
-      condition: condition,
-      isActive: isActive,
-      isSerialized: isSerialized,
-      supplierId: selectedSupplier,
-      // Preserve these if editing
-      lowStockThreshold: isEditing ? widget.product!.lowStockThreshold : 10,
-      minStockLevel: isEditing ? widget.product!.minStockLevel : 5,
+    final product = Product(
+      id: _isEditing ? widget.product!.id : const Uuid().v4(),
+      name: _nameController.text.trim(),
+      sku: _isEditing ? widget.product!.sku : 'P-${const Uuid().v4().substring(0, 8).toUpperCase()}',
+      brand: _brandController.text.trim().isNotEmpty ? _brandController.text.trim() : null,
+      category: _categoryController.text.trim(),
+      purchasePrice: double.tryParse(_costPriceController.text) ?? 0,
+      sellingPrice: double.tryParse(_salePriceController.text) ?? 0,
+      stock: int.tryParse(_quantityController.text) ?? 0,
+      condition: _condition,
+      isActive: true,
+      isSerialized: false,
+      supplierId: _selectedSupplier,
+      lowStockThreshold: _isEditing ? widget.product!.lowStockThreshold : 10,
+      minStockLevel: _isEditing ? widget.product!.minStockLevel : 5,
     );
 
-    if (isEditing) {
-      await ref.read(productProvider.notifier).updateProduct(newProduct);
+    if (_isEditing) {
+      await ref.read(productProvider.notifier).updateProduct(product);
     } else {
-      await ref.read(productProvider.notifier).addProduct(newProduct);
+      await ref.read(productProvider.notifier).addProduct(product);
     }
 
     if (mounted) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${newProduct.name} ${isEditing ? 'updated' : 'added to inventory'}.'),
-          backgroundColor: Colors.green,
-        ),
+        SnackBar(content: Text('${product.name} ${_isEditing ? 'updated' : 'added'}.'), backgroundColor: Colors.green),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final suppliers = ref.watch(supplierProvider);
 
     return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-      child: FadeInDown(
-        duration: const Duration(milliseconds: 300),
-        child: Container(
-          width: 900,
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
-          decoration: BoxDecoration(
-            color: theme.brightness == Brightness.dark ? const Color(0xFF1A1A2E) : Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
-          ),
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(isEditing ? 'Edit Product' : 'Add New Product', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                        Text(isEditing ? 'Update the product details below.' : 'Fill in the details to expand your catalog.', style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                      ],
-                    ),
-                    IconButton(
-                      icon: const Icon(LucideIcons.x),
-                      onPressed: () => Navigator.pop(context),
-                      splashRadius: 20,
-                    ),
-                  ],
+      backgroundColor: const Color(0xFF1A1F2E),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        width: 500,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Text(
+                  _isEditing ? 'Edit Product' : 'Add Product',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
-              ),
-              const Divider(height: 1),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(LucideIcons.x, size: 18),
+                  onPressed: () => Navigator.pop(context),
+                  style: IconButton.styleFrom(foregroundColor: Colors.grey),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
 
-              // Form Content
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(32),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Row 1: Basic Info
-                        _SectionHeader(title: 'Basic Information', icon: LucideIcons.info),
-                        const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Expanded(child: _FormField(label: 'Product Name', controller: nameController, hint: 'e.g. iPhone 15 Pro', required: true)),
-                            const SizedBox(width: 24),
-                            Expanded(child: _FormField(label: 'Brand', controller: brandController, hint: 'e.g. Apple')),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            Expanded(child: _FormField(label: 'Category', controller: categoryController, hint: 'e.g. Smartphones')),
-                            const SizedBox(width: 24),
-                            Expanded(child: _FormField(label: 'Variant', controller: variantController, hint: 'e.g. 256GB, Blue Titanium')),
-                          ],
-                        ),
-
-                        const SizedBox(height: 48),
-
-                        // Row 2: Pricing & Inventory
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _SectionHeader(title: 'Pricing', icon: LucideIcons.dollarSign),
-                                  const SizedBox(height: 20),
-                                  _FormField(label: 'Cost Price', controller: costPriceController, hint: '0.00', prefix: 'Rs.', keyboardType: TextInputType.number),
-                                  const SizedBox(height: 16),
-                                  _FormField(label: 'Sale Price', controller: salePriceController, hint: '0.00', prefix: 'Rs.', keyboardType: TextInputType.number, required: true),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 48),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _SectionHeader(title: 'Inventory', icon: LucideIcons.box),
-                                  const SizedBox(height: 20),
-                                  _FormField(label: 'Initial Quantity', controller: quantityController, hint: '0', keyboardType: TextInputType.number),
-                                  const SizedBox(height: 16),
-                                  const Text('Supplier', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
-                                  const SizedBox(height: 8),
-                                  DropdownButtonFormField<String>(
-                                    value: selectedSupplier,
-                                    decoration: InputDecoration(
-                                      filled: true,
-                                      fillColor: Colors.white.withOpacity(0.03),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                                    ),
-                                    items: suppliers.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))).toList(),
-                                    onChanged: (val) => setState(() => selectedSupplier = val),
-                                    hint: const Text('Select Supplier', style: TextStyle(fontSize: 14)),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 48),
-
-                        // Row 3: Identification (Barcodes)
-                        _SectionHeader(title: 'Identification', icon: LucideIcons.scan),
-                        const SizedBox(height: 20),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Expanded(child: _FormField(label: 'SKU / IMEI / Barcode', controller: skuController, hint: 'Enter or Scan')),
-                            const SizedBox(width: 16),
-                            PrimaryButton(
-                              label: 'Scan', 
-                              onPressed: _scanBarcode, 
-                              icon: LucideIcons.camera, 
-                              width: 120, 
-                              height: 48,
-                              color: AppTheme.primaryColor.withOpacity(0.1),
-                            ),
-                            const SizedBox(width: 12),
-                            PrimaryButton(
-                              label: 'Generate', 
-                              onPressed: _generateSKU, 
-                              icon: LucideIcons.refreshCcw, 
-                              width: 140, 
-                              height: 48,
-                              color: Colors.blue.withOpacity(0.1),
-                            ),
-                          ],
-                        ),
-                        if (skuController.text.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.03),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white.withOpacity(0.05)),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(LucideIcons.scan, size: 40, color: Colors.grey),
-                                const SizedBox(width: 16),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Barcode Preview', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                                    Text(skuController.text, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2)),
-                                  ],
-                                ),
-                                const Spacer(),
-                                IconButton(icon: const Icon(LucideIcons.printer, size: 18), onPressed: () {}),
-                                IconButton(icon: const Icon(LucideIcons.download, size: 18), onPressed: () {}),
-                              ],
-                            ),
-                          ),
-                        ],
-
-                        const SizedBox(height: 48),
-
-                        // Row 4: Inventory Type & Attributes
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _SectionHeader(title: 'Inventory Type', icon: LucideIcons.layers),
-                                  const SizedBox(height: 20),
-                                  Container(
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.03),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.white.withOpacity(0.05)),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: _ChoiceBtn(
-                                                label: '📱 Serialized (IMEI)', 
-                                                isSelected: isSerialized, 
-                                                onTap: () => setState(() => isSerialized = true),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: _ChoiceBtn(
-                                                label: '📦 Non-Serialized', 
-                                                isSelected: !isSerialized, 
-                                                onTap: () => setState(() => isSerialized = false),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          isSerialized 
-                                            ? 'Each unit requires a unique IMEI/Serial number (e.g., Mobile Phones)'
-                                            : 'Units tracked by quantity only, no serial numbers required (e.g., Chargers, Cables)',
-                                          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // Row 5: Condition & Status
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Product Condition', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      _ChoiceBtn(
-                                        label: 'Brand New', 
-                                        isSelected: condition == ProductCondition.new_, 
-                                        onTap: () => setState(() => condition = ProductCondition.new_)
-                                      ),
-                                      const SizedBox(width: 12),
-                                      _ChoiceBtn(
-                                        label: 'Used / Pre-owned', 
-                                        isSelected: condition == ProductCondition.used, 
-                                        onTap: () => setState(() => condition = ProductCondition.used)
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 48),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('System Status', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
-                                  const SizedBox(height: 12),
-                                  SwitchListTile(
-                                    title: Text(isActive ? 'Product is Active' : 'Product is Inactive', style: const TextStyle(fontSize: 14)),
-                                    subtitle: const Text('Inactive products are hidden in POS', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                                    value: isActive,
-                                    onChanged: (val) => setState(() => isActive = val),
-                                    contentPadding: EdgeInsets.zero,
-                                    activeColor: Colors.green,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+            // Form
+            Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  // Name & Brand
+                  Row(
+                    children: [
+                      Expanded(child: _buildField('Name', _nameController, required: true)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildField('Brand', _brandController)),
+                    ],
                   ),
-                ),
-              ),
+                  const SizedBox(height: 16),
 
-              // Footer Actions
-              const Divider(height: 1),
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Discard Changes', style: TextStyle(color: Colors.grey)),
-                    ),
-                    const SizedBox(width: 24),
-                    PrimaryButton(
-                      label: isEditing ? 'Update Product' : 'Save Product',
-                      onPressed: _handleSubmit,
-                      isLoading: isLoading,
-                      width: 200,
-                      icon: isEditing ? LucideIcons.check : LucideIcons.save,
-                    ),
-                  ],
-                ),
+                  // Category & Supplier
+                  Row(
+                    children: [
+                      Expanded(child: _buildField('Category', _categoryController)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildDropdown(suppliers)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Prices
+                  Row(
+                    children: [
+                      Expanded(child: _buildField('Cost Price', _costPriceController, isNumber: true, prefix: 'Rs.')),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildField('Sale Price', _salePriceController, isNumber: true, prefix: 'Rs.', required: true)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Quantity & Condition
+                  Row(
+                    children: [
+                      Expanded(child: _buildField('Quantity', _quantityController, isNumber: true)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildConditionSelector()),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Actions
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Cancel', style: TextStyle(color: Colors.grey[500])),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _handleSubmit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text(_isEditing ? 'Update' : 'Save'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
-}
 
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  const _SectionHeader({required this.title, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: AppTheme.primaryColor),
-        const SizedBox(width: 12),
-        Text(title.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.2, color: Colors.grey)),
-      ],
-    );
-  }
-}
-
-class _FormField extends StatelessWidget {
-  final String label;
-  final String hint;
-  final TextEditingController controller;
-  final bool required;
-  final TextInputType keyboardType;
-  final String? prefix;
-
-  const _FormField({
-    required this.label, 
-    required this.hint, 
-    required this.controller, 
-    this.required = false,
-    this.keyboardType = TextInputType.text,
-    this.prefix,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildField(String label, TextEditingController controller, {bool required = false, bool isNumber = false, String? prefix}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
-            if (required) const Text(' *', style: TextStyle(color: Colors.red)),
+            Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+            if (required) Text(' *', style: TextStyle(color: Colors.red[400], fontSize: 12)),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         TextFormField(
           controller: controller,
-          keyboardType: keyboardType,
-          style: const TextStyle(fontSize: 15),
-          validator: (val) {
-            if (required && (val == null || val.isEmpty)) {
-              return 'This field is required';
-            }
-            return null;
-          },
+          keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+          style: const TextStyle(fontSize: 14),
+          validator: required ? (v) => v?.isEmpty == true ? 'Required' : null : null,
           decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey.withOpacity(0.5), fontSize: 14),
             prefixText: prefix != null ? '$prefix ' : null,
-            prefixStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+            prefixStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
             filled: true,
-            fillColor: Colors.white.withOpacity(0.03),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1)),
-            errorStyle: const TextStyle(fontSize: 10),
+            fillColor: Colors.white.withValues(alpha: 0.04),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.5))),
           ),
         ),
       ],
     );
   }
-}
 
-class _ChoiceBtn extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ChoiceBtn({required this.label, required this.isSelected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryColor.withOpacity(0.1) : Colors.white.withOpacity(0.03),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? AppTheme.primaryColor : Colors.white.withOpacity(0.05)),
+  Widget _buildDropdown(List<Supplier> suppliers) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Supplier', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+        const SizedBox(height: 6),
+        Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedSupplier,
+              isExpanded: true,
+              dropdownColor: const Color(0xFF1E293B),
+              style: const TextStyle(fontSize: 14),
+              hint: Text('Select', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+              items: suppliers.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))).toList(),
+              onChanged: (v) => setState(() => _selectedSupplier = v),
+            ),
+          ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ],
+    );
+  }
+
+  Widget _buildConditionSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Condition', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            _conditionChip('New', ProductCondition.new_),
+            const SizedBox(width: 8),
+            _conditionChip('Used', ProductCondition.used),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _conditionChip(String label, ProductCondition value) {
+    final isSelected = _condition == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _condition = value),
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.4) : Colors.transparent),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: isSelected ? AppTheme.primaryColor : Colors.grey[500],
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            ),
           ),
         ),
       ),

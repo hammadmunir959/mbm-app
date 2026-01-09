@@ -568,6 +568,7 @@ enum PurchaseOrderStatus { draft, sent, confirmed, received, cancelled }
 class PurchaseOrderItem {
   final String productId;
   final String productName;
+  final String? description;
   final int quantity;
   final double costPrice;
   final List<String>? imeis;
@@ -575,14 +576,16 @@ class PurchaseOrderItem {
   PurchaseOrderItem({
     required this.productId,
     required this.productName,
+    this.description,
     required this.quantity,
-    required this.costPrice,
+    this.costPrice = 0.0,
     this.imeis,
   });
 
   PurchaseOrderItem copyWith({
     String? productId,
     String? productName,
+    String? description,
     int? quantity,
     double? costPrice,
     List<String>? imeis,
@@ -590,6 +593,7 @@ class PurchaseOrderItem {
     return PurchaseOrderItem(
       productId: productId ?? this.productId,
       productName: productName ?? this.productName,
+      description: description ?? this.description,
       quantity: quantity ?? this.quantity,
       costPrice: costPrice ?? this.costPrice,
       imeis: imeis ?? this.imeis,

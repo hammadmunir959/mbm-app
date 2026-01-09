@@ -30,6 +30,7 @@ class _PurchaseOrderDialogState extends ConsumerState<PurchaseOrderDialog> {
   late PurchaseOrderStatus _status;
   bool _isEditing = false;
   bool _isLoading = false;
+  String _notes = '';
 
   @override
   void initState() {
@@ -49,14 +50,16 @@ class _PurchaseOrderDialogState extends ConsumerState<PurchaseOrderDialog> {
       _items = [];
     }
     
+    
     _status = widget.purchaseOrder?.status ?? PurchaseOrderStatus.draft;
+    _notes = widget.purchaseOrder?.notes ?? '';
   }
 
   double get _totalCost => _items.fold(0, (sum, item) => sum + (item.costPrice * item.quantity));
 
   void _addItem() {
     setState(() {
-      _items.add(PurchaseOrderItem(productId: '', productName: '', quantity: 1, costPrice: 0));
+      _items.add(PurchaseOrderItem(productId: '', productName: '', quantity: 1, description: ''));
     });
   }
 
@@ -87,7 +90,7 @@ class _PurchaseOrderDialogState extends ConsumerState<PurchaseOrderDialog> {
           items: _items,
           totalCost: _totalCost,
           status: _status,
-          notes: widget.purchaseOrder!.notes,
+          notes: _notes,
           createdAt: widget.purchaseOrder!.createdAt,
           receivedAt: widget.purchaseOrder!.receivedAt,
         );
@@ -97,6 +100,7 @@ class _PurchaseOrderDialogState extends ConsumerState<PurchaseOrderDialog> {
           supplierId: supplier.id,
           supplierName: supplier.name,
           items: _items,
+          notes: _notes, 
         );
       }
 
@@ -165,6 +169,7 @@ class _PurchaseOrderDialogState extends ConsumerState<PurchaseOrderDialog> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Supplier Selection (Optional for manual PO logic but good to keep)
                   Expanded(
                     flex: 2,
                     child: Column(
@@ -234,76 +239,146 @@ class _PurchaseOrderDialogState extends ConsumerState<PurchaseOrderDialog> {
                     separatorBuilder: (context, index) => const Divider(height: 24, color: Colors.white10),
                     itemBuilder: (context, index) {
                       final item = _items[index];
-                      return Row(
-                        children: [
-                          Expanded(
-                            flex: 4,
-                            child: DropdownButtonFormField<String>(
-                              hint: const Text('Select Product'),
-                              value: item.productId.isEmpty ? null : item.productId,
-                              isExpanded: true,
+                      return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Product Name (Manual or Select)
+                                Expanded(
+                                  flex: 4,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Product Name', style: TextStyle(fontSize: 11, color: Colors.grey[400])),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: TextFormField(
+                                              initialValue: item.productName,
+                                              decoration: InputDecoration(
+                                                hintText: 'Enter product name',
+                                                isDense: true,
+                                                fillColor: Colors.black.withOpacity(0.2),
+                                                filled: true,
+                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                              ),
+                                              onChanged: (v) {
+                                                setState(() {
+                                                  _items[index] = item.copyWith(productName: v);
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          // Product Picker Button
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(0.05),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: PopupMenuButton<String>(
+                                              icon: const Icon(LucideIcons.list, size: 18),
+                                              tooltip: 'Select from Inventory',
+                                              onSelected: (v) {
+                                                final p = products.firstWhere((prod) => prod.id == v);
+                                                setState(() {
+                                                  _items[index] = item.copyWith(
+                                                    productId: p.id,
+                                                    productName: p.name,
+                                                  );
+                                                });
+                                              },
+                                              itemBuilder: (context) => products.map((p) => PopupMenuItem(
+                                                value: p.id,
+                                                child: Text(p.name),
+                                              )).toList(),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                // Units / Quantity
+                                Expanded(
+                                  flex: 2,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Units', style: TextStyle(fontSize: 11, color: Colors.grey[400])),
+                                      const SizedBox(height: 4),
+                                      TextFormField(
+                                        initialValue: item.quantity.toString(),
+                                        keyboardType: TextInputType.number,
+                                        decoration: InputDecoration(
+                                          hintText: '1',
+                                          isDense: true,
+                                          fillColor: Colors.black.withOpacity(0.2),
+                                          filled: true,
+                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                        onChanged: (v) {
+                                          final q = int.tryParse(v) ?? 1;
+                                          setState(() {
+                                            _items[index] = item.copyWith(quantity: q);
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 22),
+                                  child: IconButton(
+                                    onPressed: () => _removeItem(index),
+                                    icon: const Icon(LucideIcons.trash2, size: 18, color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            // Description Field
+                            TextFormField(
+                              initialValue: item.description,
                               decoration: InputDecoration(
+                                hintText: 'Description / Details (Optional)',
+                                labelText: 'Description',
                                 isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                fillColor: Colors.black.withOpacity(0.1),
+                                filled: true,
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                               ),
-                              items: products.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name, overflow: TextOverflow.ellipsis))).toList(),
                               onChanged: (v) {
-                                if (v == null) return;
-                                final p = products.firstWhere((prod) => prod.id == v);
                                 setState(() {
-                                  _items[index] = item.copyWith(productId: p.id, productName: p.name, costPrice: p.purchasePrice);
+                                  _items[index] = item.copyWith(description: v);
                                 });
                               },
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: TextFormField(
-                              initialValue: item.quantity.toString(),
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                labelText: 'Qty',
-                                isDense: true,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              onChanged: (v) {
-                                final q = int.tryParse(v) ?? 1;
-                                setState(() {
-                                  _items[index] = item.copyWith(quantity: q);
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 3,
-                            child: TextFormField(
-                              initialValue: item.costPrice.toStringAsFixed(0),
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                labelText: 'Cost',
-                                isDense: true,
-                                prefixText: 'Rs. ',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              onChanged: (v) {
-                                final p = double.tryParse(v) ?? 0;
-                                setState(() {
-                                  _items[index] = item.copyWith(costPrice: p);
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: () => _removeItem(index),
-                            icon: const Icon(LucideIcons.trash2, size: 18, color: Colors.red),
-                          ),
-                        ],
-                      );
+                          ],
+                        );
                     },
                   ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // PO Notes
+              TextFormField(
+                initialValue: _notes,
+                onChanged: (v) => setState(() => _notes = v),
+                maxLines: 2,
+                decoration: InputDecoration(
+                  labelText: 'PO Notes (Optional)',
+                  alignLabelWithHint: true,
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.05),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 ),
               ),
               const SizedBox(height: 24),
@@ -315,11 +390,11 @@ class _PurchaseOrderDialogState extends ConsumerState<PurchaseOrderDialog> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('TOTAL ESTIMATED', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      const Text('TOTAL ITEMS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
                       const SizedBox(height: 4),
                       Text(
-                        'Rs. ${_totalCost.toStringAsFixed(0)}',
-                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                        '${_items.length} Items',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
                       ),
                     ],
                   ),

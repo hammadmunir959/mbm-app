@@ -31,6 +31,31 @@ class VoucherFilter {
       toDate: toDate ?? this.toDate,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is VoucherFilter &&
+          runtimeType == other.runtimeType &&
+          companyId == other.companyId &&
+          type == other.type &&
+          fromDate?.day == other.fromDate?.day &&
+          fromDate?.month == other.fromDate?.month &&
+          fromDate?.year == other.fromDate?.year &&
+          toDate?.day == other.toDate?.day &&
+          toDate?.month == other.toDate?.month &&
+          toDate?.year == other.toDate?.year;
+
+  @override
+  int get hashCode =>
+      companyId.hashCode ^
+      type.hashCode ^
+      (fromDate?.day ?? 0) ^
+      (fromDate?.month ?? 0) ^
+      (fromDate?.year ?? 0) ^
+      (toDate?.day ?? 0) ^
+      (toDate?.month ?? 0) ^
+      (toDate?.year ?? 0);
 }
 
 /// Filter for ledger queries
