@@ -3,7 +3,8 @@
 # ============================================================
 # This workflow builds Cellaris for Linux and Windows desktop platforms.
 # Triggered on version tags (v*) to create GitHub releases.
-# Android/iOS/macOS platforms are NOT supported.
+# Android build is included (requires google-services.json setup).
+# iOS/macOS platforms are NOT supported.
 # ============================================================
 
 name: Build and Release Cellaris
@@ -131,12 +132,51 @@ jobs:
           cd build/linux/x64/release/bundle
           tar -czvf ../../../../../Cellaris-Linux.tar.gz *
 
-      # Step 8: Upload the Linux artifact for use in release job
-      - name: Upload Linux Artifact
+          path: Cellaris-Linux.tar.gz
+          retention-days: 5
+
+  # ============================================================
+  # ANDROID BUILD JOB
+  # Builds the Android APK (Release)
+  # ============================================================
+  build-android:
+    name: Build Android Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pub-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      - name: Upload Android Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-release
-          path: Cellaris-Linux.tar.gz
+          name: android-release
+          path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 5
 
   # ============================================================
@@ -146,7 +186,7 @@ jobs:
   # ============================================================
   create-release:
     name: Create GitHub Release
-    needs: [build-windows, build-linux]  # Wait for both builds
+    needs: [build-windows, build-linux, build-android]  # Wait for all builds
     runs-on: ubuntu-latest
     
     steps:
@@ -162,6 +202,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: linux-release
+          path: ./artifacts
+
+      # Step 3: Download Android build artifact
+      - name: Download Android Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-release
           path: ./artifacts
 
       # Step 3: List artifacts for verification (debugging)
@@ -182,6 +229,7 @@ jobs:
             |----------|------|--------------|
             | **Windows** | `Cellaris-Windows.zip` | Extract and run `cellaris.exe` |
             | **Linux** | `Cellaris-Linux.tar.gz` | Extract and run `./cellaris` |
+            | **Android** | `app-release.apk` | Sideload on Android device |
             
             ### 📦 Installation
             
@@ -195,12 +243,17 @@ jobs:
             2. Extract: `tar -xzvf Cellaris-Linux.tar.gz`
             3. Make executable: `chmod +x cellaris`
             4. Run: `./cellaris`
+
+            **Android:**
+            1. Download `app-release.apk`
+            2. Open on your Android device and install
             
             ---
-            *This is a desktop-only release. Android/iOS/macOS are not supported.*
+            *iOS/macOS are not supported.*
           files: |
             artifacts/Cellaris-Windows.zip
             artifacts/Cellaris-Linux.tar.gz
+            artifacts/app-release.apk
           draft: false
           prerelease: false
           generate_release_notes: true
