@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
-import 'package:uuid/uuid.dart';
 import 'package:cellaris/core/theme/app_theme.dart';
 import 'package:cellaris/features/inventory/controller/inventory_controller.dart';
 import 'package:cellaris/features/inventory/controller/purchase_order_controller.dart';

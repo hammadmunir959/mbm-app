@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:cellaris/core/theme/app_theme.dart';
 import 'package:cellaris/core/models/app_models.dart';
+import 'package:cellaris/features/inventory/controller/inventory_controller.dart';
 import 'package:cellaris/features/inventory/controller/purchase_order_controller.dart';
 import 'package:cellaris/features/inventory/controller/buyback_controller.dart';
 import '../purchase_order_dialog.dart';
@@ -264,7 +265,7 @@ class _BuybackView extends ConsumerWidget {
                 : ListView.builder(
                     padding: const EdgeInsets.all(8),
                     itemCount: records.length,
-                    itemBuilder: (context, index) => _buildBuybackRow(records[index], f),
+                    itemBuilder: (context, index) => _buildBuybackRow(records[index], f, ref),
                   ),
           ),
         ),
@@ -295,13 +296,13 @@ class _BuybackView extends ConsumerWidget {
     );
   }
 
-  Widget _buildBuybackRow(BuybackRecord record, NumberFormat f) {
+  Widget _buildBuybackRow(BuybackRecord record, NumberFormat f, WidgetRef ref) {
     return Container(
       margin: const EdgeInsets.only(bottom: 2),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         children: [
-          Container(width: 3, height: 28, decoration: BoxDecoration(color: Colors.teal, borderRadius: BorderRadius.circular(2))),
+          Container(width: 3, height: 28, decoration: BoxDecoration(color: record.isListed ? Colors.teal : Colors.grey, borderRadius: BorderRadius.circular(2))),
           const SizedBox(width: 12),
           Expanded(
             flex: 2,
@@ -324,6 +325,29 @@ class _BuybackView extends ConsumerWidget {
           ),
           SizedBox(width: 100, child: Text('Rs. ${f.format(record.purchasePrice)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.teal))),
           SizedBox(width: 80, child: Text(DateFormat('MMM dd').format(record.createdAt), style: TextStyle(fontSize: 11, color: Colors.grey[500]))),
+          // List/Unlist toggle
+          SizedBox(
+            width: 80,
+            child: InkWell(
+              onTap: () => ref.read(buybackProvider.notifier).toggleListing(record.id),
+              borderRadius: BorderRadius.circular(4),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: record.isListed ? Colors.green.withValues(alpha: 0.15) : Colors.red.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(record.isListed ? LucideIcons.check : LucideIcons.x, size: 10, color: record.isListed ? Colors.green : Colors.red),
+                    const SizedBox(width: 4),
+                    Text(record.isListed ? 'Listed' : 'Unlisted', style: TextStyle(fontSize: 9, color: record.isListed ? Colors.green : Colors.red)),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -575,9 +599,13 @@ class _BuybackFormDialogState extends State<_BuybackFormDialog> {
       return;
     }
 
+    final productId = const Uuid().v4();
+    final purchasePrice = double.tryParse(priceC.text) ?? 0;
+
+    // Create the buyback record
     final record = BuybackRecord(
       id: const Uuid().v4(),
-      productId: const Uuid().v4(),
+      productId: productId,
       sellerName: nameC.text,
       sellerPhone: phoneC.text,
       sellerCnic: cnicC.text,
@@ -586,15 +614,39 @@ class _BuybackFormDialogState extends State<_BuybackFormDialog> {
       brand: brandC.text,
       model: modelC.text,
       imei: imeiC.text,
-      purchasePrice: double.tryParse(priceC.text) ?? 0,
+      purchasePrice: purchasePrice,
+      sellingPrice: purchasePrice * 1.2, // Default 20% margin
       condition: 'used',
       phoneImage1Path: phoneFrontPath,
       phoneImage2Path: phoneBackPath,
+      isListed: true, // Auto-list by default
     );
     widget.ref.read(buybackProvider.notifier).addRecord(record);
+
+    // Also create a Product in inventory (auto-listed)
+    final product = Product(
+      id: productId,
+      name: '${brandC.text} ${modelC.text}',
+      sku: 'BUY-${imeiC.text.substring(imeiC.text.length - 6)}',
+      brand: brandC.text,
+      category: 'Used Phones',
+      purchasePrice: purchasePrice,
+      sellingPrice: purchasePrice * 1.2, // Default 20% margin
+      stock: 1, // Single unit
+      condition: ProductCondition.used,
+      isActive: true,
+      isSerialized: true,
+      imei: imeiC.text,
+      lowStockThreshold: 0,
+      minStockLevel: 0,
+    );
+    widget.ref.read(productProvider.notifier).addProduct(product);
+
+    // Capture messenger before pop
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Buyback record saved'), backgroundColor: Colors.teal),
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Buyback saved & listed in inventory'), backgroundColor: Colors.teal),
     );
   }
 }

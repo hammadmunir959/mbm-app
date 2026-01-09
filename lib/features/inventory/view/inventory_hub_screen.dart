@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:cellaris/core/theme/app_theme.dart';
 import 'package:cellaris/features/inventory/controller/inventory_controller.dart';
 import 'package:cellaris/features/inventory/controller/purchase_order_controller.dart';
+import 'package:cellaris/core/models/app_models.dart';
 import 'tabs/all_products_tab.dart';
 import 'tabs/low_stock_tab.dart';
 import 'tabs/purchase_orders_tab.dart';

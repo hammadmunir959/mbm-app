@@ -25,6 +25,7 @@ class _AddProductModalState extends ConsumerState<AddProductModal> {
   final _costPriceController = TextEditingController();
   final _salePriceController = TextEditingController();
   final _quantityController = TextEditingController();
+  final _lowStockController = TextEditingController();
   
   String? _selectedSupplier;
   ProductCondition _condition = ProductCondition.new_;
@@ -42,8 +43,11 @@ class _AddProductModalState extends ConsumerState<AddProductModal> {
       _costPriceController.text = p.purchasePrice.toString();
       _salePriceController.text = p.sellingPrice.toString();
       _quantityController.text = p.stock.toString();
+      _lowStockController.text = p.lowStockThreshold.toString();
       _selectedSupplier = p.supplierId;
       _condition = p.condition;
+    } else {
+      _lowStockController.text = '10'; // Default
     }
   }
 
@@ -55,6 +59,7 @@ class _AddProductModalState extends ConsumerState<AddProductModal> {
     _costPriceController.dispose();
     _salePriceController.dispose();
     _quantityController.dispose();
+    _lowStockController.dispose();
     super.dispose();
   }
 
@@ -76,21 +81,37 @@ class _AddProductModalState extends ConsumerState<AddProductModal> {
       isActive: true,
       isSerialized: false,
       supplierId: _selectedSupplier,
-      lowStockThreshold: _isEditing ? widget.product!.lowStockThreshold : 10,
+      lowStockThreshold: int.tryParse(_lowStockController.text) ?? 10,
       minStockLevel: _isEditing ? widget.product!.minStockLevel : 5,
     );
 
-    if (_isEditing) {
-      await ref.read(productProvider.notifier).updateProduct(product);
-    } else {
-      await ref.read(productProvider.notifier).addProduct(product);
-    }
+    try {
+      if (_isEditing) {
+        await ref.read(productProvider.notifier).updateProduct(product);
+      } else {
+        await ref.read(productProvider.notifier).addProduct(product);
+      }
 
-    if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${product.name} ${_isEditing ? 'updated' : 'added'}.'), backgroundColor: Colors.green),
-      );
+      if (mounted) {
+        // Capture messenger BEFORE popping the dialog
+        final messenger = ScaffoldMessenger.of(context);
+        final productName = product.name;
+        final isEdit = _isEditing;
+        
+        Navigator.pop(context);
+        
+        // Now show snackbar using captured messenger
+        messenger.showSnackBar(
+          SnackBar(content: Text('$productName ${isEdit ? 'updated' : 'added'}.'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -160,10 +181,12 @@ class _AddProductModalState extends ConsumerState<AddProductModal> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Quantity & Condition
+                  // Quantity, Low Stock & Condition
                   Row(
                     children: [
                       Expanded(child: _buildField('Quantity', _quantityController, isNumber: true)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildField('Low Stock Alert', _lowStockController, isNumber: true, hint: 'Alert when below')),
                       const SizedBox(width: 12),
                       Expanded(child: _buildConditionSelector()),
                     ],
@@ -203,7 +226,7 @@ class _AddProductModalState extends ConsumerState<AddProductModal> {
     );
   }
 
-  Widget _buildField(String label, TextEditingController controller, {bool required = false, bool isNumber = false, String? prefix}) {
+  Widget _buildField(String label, TextEditingController controller, {bool required = false, bool isNumber = false, String? prefix, String? hint}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -220,6 +243,8 @@ class _AddProductModalState extends ConsumerState<AddProductModal> {
           style: const TextStyle(fontSize: 14),
           validator: required ? (v) => v?.isEmpty == true ? 'Required' : null : null,
           decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey[600], fontSize: 12),
             prefixText: prefix != null ? '$prefix ' : null,
             prefixStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
             filled: true,

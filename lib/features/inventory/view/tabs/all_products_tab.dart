@@ -339,10 +339,10 @@ class _AllProductsTabState extends ConsumerState<AllProductsTab> {
                   child: Row(
                     children: [
                       Text('${product.stock}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: stockColor)),
-                      if (product.stock <= product.lowStockThreshold && product.stock > 0) ..[
+                      if (product.stock <= product.lowStockThreshold && product.stock > 0)
                         const SizedBox(width: 4),
+                      if (product.stock <= product.lowStockThreshold && product.stock > 0)
                         Icon(LucideIcons.alertTriangle, size: 10, color: Colors.orange),
-                      ],
                     ],
                   ),
                 ),

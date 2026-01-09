@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
 
 /// Represents a complete Used Phone Buyback record with seller and phone details
 class BuybackRecord {
@@ -21,8 +20,12 @@ class BuybackRecord {
   final String? variant;
   final String condition;
   final double purchasePrice;
+  final double? sellingPrice; // For listing
   final String? phoneImage1Path;
   final String? phoneImage2Path;
+  
+  // Listing status
+  final bool isListed; // Whether product is listed in inventory/POS
   
   // Timestamps
   final DateTime createdAt;
@@ -43,8 +46,10 @@ class BuybackRecord {
     this.variant,
     required this.condition,
     required this.purchasePrice,
+    this.sellingPrice,
     this.phoneImage1Path,
     this.phoneImage2Path,
+    this.isListed = true, // Auto-list by default
     DateTime? createdAt,
     this.notes,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -61,6 +66,8 @@ class BuybackRecord {
     String? notes,
     String? phoneImage1Path,
     String? phoneImage2Path,
+    bool? isListed,
+    double? sellingPrice,
   }) {
     return BuybackRecord(
       id: id,
@@ -77,8 +84,10 @@ class BuybackRecord {
       variant: variant,
       condition: condition,
       purchasePrice: purchasePrice,
+      sellingPrice: sellingPrice ?? this.sellingPrice,
       phoneImage1Path: phoneImage1Path ?? this.phoneImage1Path,
       phoneImage2Path: phoneImage2Path ?? this.phoneImage2Path,
+      isListed: isListed ?? this.isListed,
       createdAt: createdAt,
       notes: notes ?? this.notes,
     );
@@ -97,6 +106,30 @@ class BuybackNotifier extends StateNotifier<List<BuybackRecord>> {
     state = state.where((r) => r.id != id).toList();
   }
   
+  /// Toggle listing status
+  void toggleListing(String id) {
+    state = [
+      for (final r in state)
+        if (r.id == id) r.copyWith(isListed: !r.isListed) else r
+    ];
+  }
+  
+  /// Set listing status explicitly
+  void setListed(String id, bool listed) {
+    state = [
+      for (final r in state)
+        if (r.id == id) r.copyWith(isListed: listed) else r
+    ];
+  }
+  
+  /// Update selling price
+  void updateSellingPrice(String id, double price) {
+    state = [
+      for (final r in state)
+        if (r.id == id) r.copyWith(sellingPrice: price) else r
+    ];
+  }
+  
   BuybackRecord? getByProductId(String productId) {
     try {
       return state.firstWhere((r) => r.productId == productId);
@@ -112,9 +145,13 @@ class BuybackNotifier extends StateNotifier<List<BuybackRecord>> {
       return null;
     }
   }
+  
+  /// Get only listed buybacks
+  List<BuybackRecord> get listedRecords => state.where((r) => r.isListed).toList();
 }
 
 /// Provider for buyback records
 final buybackProvider = StateNotifierProvider<BuybackNotifier, List<BuybackRecord>>((ref) {
   return BuybackNotifier();
 });
+
