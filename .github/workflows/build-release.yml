@@ -132,6 +132,11 @@ jobs:
           cd build/linux/x64/release/bundle
           tar -czvf ../../../../../Cellaris-Linux.tar.gz *
 
+      # Step 8: Upload the Linux artifact for use in release job
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
           path: Cellaris-Linux.tar.gz
           retention-days: 5
 
